@@ -83,15 +83,25 @@ function calculateDaysBetween(date1: string, date2: string, unit: string) {
   }
 }
 
-function calculateDaysLeft(lastReplaced: string, interval: number, unit: string) {
+function calculateDaysLeft(
+  lastReplaced: string,
+  interval: number,
+  unit: string
+) {
   const last = new Date(lastReplaced + "T00:00:00");
   const now = new Date();
   let next = addInterval(lastReplaced, interval, unit);
-  const diff = Math.ceil((next.getTime() - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+  const diff = Math.ceil(
+    (next.getTime() - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24)
+  );
   return diff;
 }
 
-function calculateNextDate(lastReplaced: string, interval: number, unit: string) {
+function calculateNextDate(
+  lastReplaced: string,
+  interval: number,
+  unit: string
+) {
   const next = addInterval(lastReplaced, interval, unit);
   return next.toLocaleDateString();
 }
@@ -145,11 +155,17 @@ const App: React.FC = () => {
   const [dark, setDark] = useDarkMode();
 
   // View mode: days, weeks, months
-  const [viewMode, setViewMode] = useLocalStorage<ViewMode>("view-mode", "days");
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>(
+    "view-mode",
+    "days"
+  );
 
   // Editable title
   const [editingTitle, setEditingTitle] = useState(false);
-  const [title, setTitle] = useLocalStorage("custom-title", "Replacement Tracker");
+  const [title, setTitle] = useLocalStorage(
+    "custom-title",
+    "Replacement Tracker"
+  );
 
   const modalRef = useRef<HTMLDivElement>(null);
   const intervalDialogRef = useRef<HTMLDivElement>(null);
@@ -201,8 +217,8 @@ const App: React.FC = () => {
         intervalUnit: intervalUnit || "Days",
         lastReplaced: new Date().toISOString().slice(0, 10),
         category,
-        verb: "Replace"
-      }
+        verb: "Replace",
+      },
     ]);
     setName("");
     setInterval(30);
@@ -211,8 +227,8 @@ const App: React.FC = () => {
   };
 
   const handleReplace = (id: number) => {
-    setItems(items =>
-      items.map(item =>
+    setItems((items) =>
+      items.map((item) =>
         item.id === id
           ? { ...item, lastReplaced: new Date().toISOString().slice(0, 10) }
           : item
@@ -229,7 +245,11 @@ const App: React.FC = () => {
     setEditingId(item.id);
     setEditName(item.name);
     setEditLastDate(item.lastReplaced.slice(0, 10));
-    const next = addInterval(item.lastReplaced.slice(0, 10), item.replacementInterval, item.intervalUnit || "Days");
+    const next = addInterval(
+      item.lastReplaced.slice(0, 10),
+      item.replacementInterval,
+      item.intervalUnit || "Days"
+    );
     setEditNextDate(next.toISOString().slice(0, 10));
     setEditVerb(item.verb);
     setEditCategory(item.category);
@@ -238,17 +258,19 @@ const App: React.FC = () => {
   };
 
   const handleEditSave = (id: number) => {
-    setItems(items =>
-      items.map(item =>
+    setItems((items) =>
+      items.map((item) =>
         item.id === id
           ? {
               ...item,
               name: editName.trim(),
-              lastReplaced: new Date(editLastDate + "T00:00:00").toISOString().slice(0, 10),
+              lastReplaced: new Date(editLastDate + "T00:00:00")
+                .toISOString()
+                .slice(0, 10),
               replacementInterval: editInterval,
               intervalUnit: editIntervalUnit || "Days",
               verb: editVerb,
-              category: editCategory
+              category: editCategory,
             }
           : item
       )
@@ -285,20 +307,41 @@ const App: React.FC = () => {
   // Click outside for menus/dialogs (for edit mode menus)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (deleteId !== null && modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (
+        deleteId !== null &&
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
         setDeleteId(null);
       }
-      if (intervalDialogOpen && intervalDialogRef.current && !intervalDialogRef.current.contains(event.target as Node)) {
+      if (
+        intervalDialogOpen &&
+        intervalDialogRef.current &&
+        !intervalDialogRef.current.contains(event.target as Node)
+      ) {
         setIntervalDialogOpen(false);
       }
-      if (verbMenuOpen && verbRef.current && !verbRef.current.contains(event.target as Node)) {
+      if (
+        verbMenuOpen &&
+        verbRef.current &&
+        !verbRef.current.contains(event.target as Node)
+      ) {
         setVerbMenuOpen(false);
       }
-      if (categoryMenuOpen && categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+      if (
+        categoryMenuOpen &&
+        categoryRef.current &&
+        !categoryRef.current.contains(event.target as Node)
+      ) {
         setCategoryMenuOpen(false);
       }
     }
-    if (deleteId !== null || intervalDialogOpen || verbMenuOpen || categoryMenuOpen) {
+    if (
+      deleteId !== null ||
+      intervalDialogOpen ||
+      verbMenuOpen ||
+      categoryMenuOpen
+    ) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
@@ -307,539 +350,561 @@ const App: React.FC = () => {
   }, [deleteId, intervalDialogOpen, verbMenuOpen, categoryMenuOpen]);
 
   const sortedItems = [...(items ?? [])].sort((a, b) => {
-    const aLeft = calculateDaysLeft(a.lastReplaced, a.replacementInterval, a.intervalUnit || "Days");
-    const bLeft = calculateDaysLeft(b.lastReplaced, b.replacementInterval, b.intervalUnit || "Days");
+    const aLeft = calculateDaysLeft(
+      a.lastReplaced,
+      a.replacementInterval,
+      a.intervalUnit || "Days"
+    );
+    const bLeft = calculateDaysLeft(
+      b.lastReplaced,
+      b.replacementInterval,
+      b.intervalUnit || "Days"
+    );
     return aLeft - bLeft;
   });
 
   const iconColor = dark ? "#fff" : "#000";
 
   return (
-    <div className="App">
-      {/* Settings Dialog */}
-      {settingsOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog settings-dialog" ref={settingsRef} style={{ minWidth: 340 }}>
-            <div className="modal-title">Settings</div>
-            <div style={{ textAlign: "left", marginBottom: 18 }}>
-              <div style={{ marginBottom: 10 }}>
-                <b>Theme:</b>
-                <button
-                  className="modal-btn"
-                  style={{ marginLeft: 10 }}
-                  onClick={() => setDark(d => !d)}
-                >
-                  {dark ? "Switch to Day Mode" : "Switch to Night Mode"}
-                </button>
-              </div>
-              <div>
-                <b>View Options:</b>
-                <div style={{ marginTop: 8 }}>
-                  <label>
-                    <input
-                      type="radio"
-                      checked={viewMode === "days"}
-                      onChange={() => setViewMode("days")}
-                    />{" "}
-                    Days left
-                  </label>
-                  <br />
-                  <label>
-                    <input
-                      type="radio"
-                      checked={viewMode === "weeks"}
-                      onChange={() => setViewMode("weeks")}
-                    />{" "}
-                    Weeks (days & weeks left)
-                  </label>
-                  <br />
-                  <label>
-                    <input
-                      type="radio"
-                      checked={viewMode === "months"}
-                      onChange={() => setViewMode("months")}
-                    />{" "}
-                    Months (months, weeks & days left)
-                  </label>
+    <>
+      <div className="App">
+        {/* Settings Dialog */}
+        {settingsOpen && (
+          <div className="modal-overlay">
+            <div
+              className="modal-dialog settings-dialog"
+              ref={settingsRef}
+              style={{ minWidth: 340 }}
+            >
+              <div className="modal-title">Settings</div>
+              <div style={{ textAlign: "left", marginBottom: 18 }}>
+                <div style={{ marginBottom: 10 }}>
+                  <b>Theme:</b>
+                  <button
+                    className="modal-btn"
+                    style={{ marginLeft: 10 }}
+                    onClick={() => setDark((d) => !d)}
+                  >
+                    {dark ? "Switch to Day Mode" : "Switch to Night Mode"}
+                  </button>
+                </div>
+                <div>
+                  <b>View Options:</b>
+                  <div style={{ marginTop: 8 }}>
+                    <label>
+                      <input
+                        type="radio"
+                        checked={viewMode === "days"}
+                        onChange={() => setViewMode("days")}
+                      />{" "}
+                      Days left
+                    </label>
+                    <br />
+                    <label>
+                      <input
+                        type="radio"
+                        checked={viewMode === "weeks"}
+                        onChange={() => setViewMode("weeks")}
+                      />{" "}
+                      Weeks (days & weeks left)
+                    </label>
+                    <br />
+                    <label>
+                      <input
+                        type="radio"
+                        checked={viewMode === "months"}
+                        onChange={() => setViewMode("months")}
+                      />{" "}
+                      Months (months, weeks & days left)
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="modal-btn-row">
-              <button className="modal-btn" onClick={() => setSettingsOpen(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Editable Title */}
-      <h1
-        className={`centered-title${editingTitle ? " editing-title" : ""}`}
-        style={{
-          cursor: "pointer",
-          textDecoration: editingTitle ? "none" : undefined
-        }}
-        onMouseEnter={e => {
-          if (!editingTitle) e.currentTarget.style.textDecoration = "underline";
-        }}
-        onMouseLeave={e => {
-          if (!editingTitle) e.currentTarget.style.textDecoration = "none";
-        }}
-        onClick={() => setEditingTitle(true)}
-        tabIndex={0}
-      >
-        {editingTitle ? (
-          <input
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onBlur={() => setEditingTitle(false)}
-            onKeyDown={e => {
-              if (e.key === "Enter" || e.key === "Escape") setEditingTitle(false);
-            }}
-            style={{
-              fontSize: "2rem",
-              fontWeight: 700,
-              background: "none",
-              border: "none",
-              outline: "none",
-              textAlign: "center",
-              width: "100%",
-              color: "var(--color-text)"
-            }}
-            autoFocus
-            maxLength={40}
-          />
-        ) : (
-          title
-        )}
-      </h1>
-
-      <div className="main-container">
-        <div className="add-row">
-          {!showAddForm ? (
-            <>
-              <button
-                className="new-btn"
-                type="button"
-                onClick={() => setShowAddForm(true)}
-              >
-                New
-              </button>
-              <button
-                className="icon-btn gear-btn"
-                aria-label="Open settings"
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
-              >
-                {/* Gear Icon */}
-                <svg width="24" height="24" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="add-form-container" ref={formContainerRef}>
-                <form
-                  className="input-form"
-                  onSubmit={e => {
-                    handleAdd(e);
-                    setShowAddForm(false);
-                  }}
-                  style={{ flex: 1, margin: 0, width: "100%" }}
+              <div className="modal-btn-row">
+                <button
+                  className="modal-btn"
+                  onClick={() => setSettingsOpen(false)}
                 >
-                  <div className="input-row">
-                    <input
-                      placeholder="Item"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={40}
-                      required
-                      className="item-input"
-                      style={{
-                        color: "var(--color-text)",
-                        background: "var(--color-card)",
-                        flex: 1
-                      }}
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      value={interval}
-                      onChange={(e) => setInterval(Number(e.target.value))}
-                      required
-                      placeholder="Interval"
-                      style={{
-                        width: 70,
-                        color: "var(--color-text)",
-                        background: "var(--color-card)"
-                      }}
-                    />
-                    <select value={intervalUnit} onChange={e => setIntervalUnit(e.target.value)} style={{ width: 90 }}>
-                      {intervalUnits.map(u => (
-                        <option key={u}>{u}</option>
-                      ))}
-                    </select>
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 110 }}>
-                      {categories.map((cat) => (
-                        <option key={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    <button className="replace-btn" type="submit" style={{ width: 80 }}>
-                      Add
-                    </button>
-                  </div>
-                </form>
+                  Close
+                </button>
               </div>
-              <button
-                className="icon-btn gear-btn"
-                aria-label="Open settings"
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
-              >
-                {/* Gear Icon */}
-                <svg width="24" height="24" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* TASKS/CARDS RENDER HERE */}
-        {(sortedItems ?? []).length === 0 && (
-          <div style={{ textAlign: "center", marginTop: "2rem" }}>
-            No items yet. Add something to track!
+            </div>
           </div>
         )}
-        {(sortedItems ?? []).map((item, idx) => {
-          const daysLeft = calculateDaysLeft(
-            item.lastReplaced,
-            item.replacementInterval,
-            item.intervalUnit || "Days"
-          );
-          const nextDate = calculateNextDate(
-            item.lastReplaced,
-            item.replacementInterval,
-            item.intervalUnit || "Days"
-          );
-          const isEditing = editingId === item.id;
-          return (
-            <React.Fragment key={item.id}>
-              <div className={`card${isEditing ? " card-editing" : ""}`}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="task-name">
-                      {isEditing ? (
-                        <>
-                          <input
-                            value={editName}
-                            onChange={e => setEditName(e.target.value)}
-                            autoFocus
-                            placeholder="Rename item"
-                            style={{
-                              fontSize: "1.08rem",
-                              fontWeight: 700,
-                              minWidth: 120,
-                              borderRadius: 6,
-                              border: "1px solid var(--color-border)",
-                              padding: "0.2rem 0.5rem",
-                              background: "var(--color-card)",
-                              color: "var(--color-text)"
-                            }}
-                          />
-                          {" "}
-                          <span
-                            className="category category-edit"
-                            ref={categoryRef}
-                            tabIndex={0}
-                            style={{
-                              textDecoration: categoryMenuOpen ? "underline" : "none",
-                              cursor: "pointer",
-                              position: "relative"
-                            }}
-                            onMouseEnter={e => isEditing && (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={e => isEditing && (e.currentTarget.style.textDecoration = "none")}
-                            onClick={e => {
-                              if (isEditing) setCategoryMenuOpen(!categoryMenuOpen);
-                            }}
-                          >
-                            {editCategory}
-                            {categoryMenuOpen && isEditing && (
-                              <div className="category-menu" style={{
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                top: "1.8rem"
-                              }}>
-                                {categories.map(cat => (
-                                  <div
-                                    key={cat}
-                                    className="category-menu-item"
-                                    onClick={() => {
-                                      setEditCategory(cat);
-                                      setCategoryMenuOpen(false);
-                                    }}
-                                  >
-                                    {cat}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </span>
-                        </>
-                      ) : (
-                        <>
+
+        {/* Editable Title */}
+        <h1
+          className={`centered-title${editingTitle ? " editing-title" : ""}`}
+          style={{
+            cursor: "pointer",
+            textDecoration: editingTitle ? "none" : undefined,
+          }}
+          onMouseEnter={(e) => {
+            if (!editingTitle)
+              e.currentTarget.style.textDecoration = "underline";
+          }}
+          onMouseLeave={(e) => {
+            if (!editingTitle) e.currentTarget.style.textDecoration = "none";
+          }}
+          onClick={() => setEditingTitle(true)}
+          tabIndex={0}
+        >
+          {editingTitle ? (
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => setEditingTitle(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape")
+                  setEditingTitle(false);
+              }}
+              style={{
+                fontSize: "2rem",
+                fontWeight: 700,
+                background: "none",
+                border: "none",
+                outline: "none",
+                textAlign: "center",
+                width: "100%",
+                color: "var(--color-text)",
+              }}
+              autoFocus
+              maxLength={40}
+            />
+          ) : (
+            title
+          )}
+        </h1>
+
+        <div className="main-container">
+          <div className="add-row">
+            {!showAddForm ? (
+              <>
+                <button
+                  className="new-btn"
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                >
+                  New
+                </button>
+                <button
+                  className="icon-btn gear-btn"
+                  aria-label="Open settings"
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
+                >
+                  {/* Gear Icon */}
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke={iconColor}
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="add-form-container" ref={formContainerRef}>
+                  <form
+                    className="input-form"
+                    onSubmit={(e) => {
+                      handleAdd(e);
+                      setShowAddForm(false);
+                    }}
+                    style={{ flex: 1, margin: 0, width: "100%" }}
+                  >
+                    <div className="input-row">
+                      <input
+                        className="item-input"
+                        placeholder="Item"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={40}
+                        required
+                        style={{
+                          color: "var(--color-text)",
+                          background: "var(--color-card)",
+                        }}
+                      />
+                      <div className="input-row-group">
+                        <input
+                          type="number"
+                          className="number-input"
+                          min={1}
+                          value={interval}
+                          onChange={(e) => setInterval(Number(e.target.value))}
+                          required
+                          placeholder="Interval"
+                          style={{
+                            color: "var(--color-text)",
+                            background: "var(--color-card)",
+                          }}
+                        />
+                        <select
+                          className="interval-unit-select"
+                          value={intervalUnit}
+                          onChange={(e) => setIntervalUnit(e.target.value)}
+                        >
+                          {intervalUnits.map((u) => (
+                            <option key={u}>{u}</option>
+                          ))}
+                        </select>
+                        <select
+                          className="category-select"
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                        >
+                          {categories.map((cat) => (
+                            <option key={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button className="replace-btn" type="submit">
+                        Add
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                <button
+                  className="icon-btn gear-btn"
+                  aria-label="Open settings"
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
+                >
+                  {/* Gear Icon */}
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke={iconColor}
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* TASKS/CARDS */}
+          {sortedItems.length === 0 && (
+            <div style={{ textAlign: "center", marginTop: "2rem" }}>
+              No items yet. Add something to track!
+            </div>
+          )}
+          {sortedItems.map((item) => {
+            const daysLeft = calculateDaysLeft(
+              item.lastReplaced,
+              item.replacementInterval,
+              item.intervalUnit || "Days"
+            );
+            const nextDate = calculateNextDate(
+              item.lastReplaced,
+              item.replacementInterval,
+              item.intervalUnit || "Days"
+            );
+            const isEditing = editingId === item.id;
+            return (
+              <React.Fragment key={item.id}>
+                <div className={`card${isEditing ? " card-editing" : ""}`}>
+                  {!isEditing ? (
+                    <div
+                      className="card-content-row"
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: "1.5rem",
+                      }}
+                    >
+                      {/* Left: Name and Days Left */}
+                      <div style={{ flex: 1 }}>
+                        <div
+                          className="task-name"
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "1.1rem",
+                            marginBottom: 4,
+                          }}
+                        >
                           {item.name}
                           {item.category !== "None" && (
-                            <span className="category">{item.category}</span>
+                            <span
+                              className="category"
+                              style={{ marginLeft: 8 }}
+                            >
+                              {item.category}
+                            </span>
                           )}
-                        </>
-                      )}
-                    </div>
-                    <div className="days-left" style={{ marginTop: "0.15rem" }}>
-                      {daysLeft < 0 ? (
-                        <span style={{ color: "var(--color-danger)" }}>{Math.abs(daysLeft)} days overdue</span>
-                      ) : (
-                        <span>{getTimeLeftDisplay(daysLeft, viewMode)}</span>
-                      )}
-                    </div>
-                    <div className="meta-grey" style={{ position: "relative" }}>
-                      {isEditing ? (
-                        <>
-                          <span
-                            className="verb-select"
-                            ref={verbRef}
-                            tabIndex={0}
-                            style={{
-                              textDecoration: verbMenuOpen ? "underline" : "none",
-                              cursor: "pointer",
-                              position: "relative"
-                            }}
-                            onMouseEnter={e => isEditing && (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={e => isEditing && (e.currentTarget.style.textDecoration = "none")}
-                            onClick={e => {
-                              if (isEditing) setVerbMenuOpen(!verbMenuOpen);
-                            }}
-                          >
-                            {editVerb}
-                            {verbMenuOpen && isEditing && (
-                              <div className="verb-menu" style={{
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                top: "1.8rem"
-                              }}>
-                                {verbs.map(v => (
-                                  <div
-                                    key={v}
-                                    className="verb-menu-item"
-                                    onClick={() => {
-                                      setEditVerb(v);
-                                      setVerbMenuOpen(false);
-                                    }}
-                                  >
-                                    {v}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                        </div>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "1.5rem",
+                            marginBottom: 2,
+                          }}
+                        >
+                          {Math.abs(daysLeft)}{" "}
+                          <span style={{ fontWeight: 400, fontSize: "1rem" }}>
+                            {daysLeft < 0 ? "days overdue" : "days left"}
                           </span>
-                          {" every "}
-                          <span
-                            className="interval-edit"
-                            tabIndex={0}
-                            style={{
-                              textDecoration: intervalDialogOpen ? "underline" : "none",
-                              cursor: "pointer"
-                            }}
-                            onMouseEnter={e => isEditing && (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={e => isEditing && (e.currentTarget.style.textDecoration = "none")}
-                            onClick={e => {
-                              if (isEditing) setIntervalDialogOpen(true);
-                            }}
+                        </div>
+                        <div style={{ color: "#666", marginBottom: 2 }}>
+                          {item.verb} every <b>{item.replacementInterval}</b>{" "}
+                          {item.intervalUnit.toLowerCase()}.
+                        </div>
+                      </div>
+                      {/* Right: Icons and Dates */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-end",
+                        }}
+                      >
+                        <div
+                          style={{ display: "flex", gap: 12, marginBottom: 8 }}
+                        >
+                          {/* Replace/Calendar Icon */}
+                          <button
+                            className="icon-btn"
+                            title="Replace now"
+                            aria-label="Replace now"
+                            onClick={() => handleReplace(item.id)}
                           >
-                            {editInterval} {editIntervalUnit.toLowerCase()}
-                            {intervalDialogOpen && (
-                              <div className="interval-dialog" ref={intervalDialogRef}>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={editInterval}
-                                  onChange={e => setEditInterval(Number(e.target.value))}
-                                  style={{
-                                    width: 60,
-                                    marginRight: 8,
-                                    background: "var(--color-card)",
-                                    color: "var(--color-text)"
-                                  }}
-                                />
-                                <select value={editIntervalUnit} onChange={e => setEditIntervalUnit(e.target.value)}>
-                                  {intervalUnits.map(u => (
-                                    <option key={u}>{u}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{item.verb} every <b>{item.replacementInterval}</b> {(item.intervalUnit || "Days").toLowerCase()}.</span>
-                        </>
-                      )}
+                            {/* Calendar Icon */}
+                            <svg
+                              width="20"
+                              height="20"
+                              fill="none"
+                              stroke={iconColor}
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <rect x="3" y="4" width="18" height="18" rx="2" />
+                              <line x1="16" y1="2" x2="16" y2="6" />
+                              <line x1="8" y1="2" x2="8" y2="6" />
+                              <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                          </button>
+                          {/* Edit/Pencil Icon */}
+                          <button
+                            className="icon-btn"
+                            title="Edit"
+                            aria-label="Edit"
+                            onClick={() => handleEdit(item)}
+                          >
+                            <svg
+                              width="20"
+                              height="20"
+                              fill="none"
+                              stroke={iconColor}
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
+                          </button>
+                          {/* Trash Icon */}
+                          <button
+                            className="icon-btn"
+                            title="Delete"
+                            aria-label="Delete"
+                            onClick={() => setDeleteId(item.id)}
+                          >
+                            <svg
+                              width="20"
+                              height="20"
+                              fill="none"
+                              stroke={iconColor}
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                              <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div
+                          style={{
+                            textAlign: "right",
+                            color: "#666",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          Next: {nextDate}
+                          <br />
+                          Last:{" "}
+                          {new Date(
+                            item.lastReplaced + "T00:00:00"
+                          ).toLocaleDateString()}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="actions-row" style={{ alignItems: "flex-start", marginLeft: "0.5rem" }}>
-                    {!isEditing ? (
-                      <>
-                        <button
-                          className="icon-btn"
-                          title="Edit"
-                          aria-label="Edit"
-                          onClick={() => handleEdit(item)}
+                  ) : (
+                    // EDIT MODE (optional, see previous messages for a full edit form)
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <input
+                        className="task-name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        style={{
+                          width: "100%",
+                          fontWeight: 700,
+                          fontSize: "1.1rem",
+                          padding: "0.3em 0.5em",
+                        }}
+                        maxLength={40}
+                        autoFocus
+                      />
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "0.5rem",
+                          alignItems: "center",
+                        }}
+                      >
+                        <select
+                          value={editVerb}
+                          onChange={(e) => setEditVerb(e.target.value)}
+                          style={{ minWidth: 100 }}
                         >
-                          {/* Pencil icon */}
-                          <svg width="20" height="20" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                          </svg>
-                        </button>
-                        <button
-                          className="icon-btn"
-                          title="Replace now"
-                          aria-label="Replace now"
-                          onClick={() => handleReplace(item.id)}
+                          {verbs.map((v) => (
+                            <option key={v}>{v}</option>
+                          ))}
+                        </select>
+                        <span>every</span>
+                        <input
+                          type="number"
+                          value={editInterval}
+                          min={1}
+                          onChange={(e) =>
+                            setEditInterval(Number(e.target.value))
+                          }
+                          style={{ width: 60 }}
+                        />
+                        <select
+                          value={editIntervalUnit}
+                          onChange={(e) => setEditIntervalUnit(e.target.value)}
+                          style={{ minWidth: 80 }}
                         >
-                          {/* Refresh icon */}
-                          <svg width="20" height="20" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M4 4v5h5" />
-                            <path d="M19 20v-5h-5" />
-                            <path d="M5 9a9 9 0 0 1 14 6" />
-                            <path d="M19 15a9 9 0 0 1-14-6" />
-                          </svg>
-                        </button>
-                        <button
-                          className="icon-btn"
-                          title="Delete"
-                          aria-label="Delete"
-                          onClick={() => setDeleteId(item.id)}
+                          {intervalUnits.map((u) => (
+                            <option key={u}>{u}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          style={{ minWidth: 100 }}
                         >
-                          {/* Trash icon */}
-                          <svg width="20" height="20" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                            <path d="M10 11v6" />
-                            <path d="M14 11v6" />
-                            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </>
-                    ) : (
-                      <>
+                          {categories.map((cat) => (
+                            <option key={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ display: "flex", gap: "1rem" }}>
+                        <label>
+                          Next:{" "}
+                          <input
+                            type="date"
+                            value={editNextDate}
+                            onChange={(e) => setEditNextDate(e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          Last:{" "}
+                          <input
+                            type="date"
+                            value={editLastDate}
+                            onChange={(e) => setEditLastDate(e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <div style={{ margin: "0.5rem 0" }}>
+                        {(() => {
+                          const days = calculateDaysLeft(
+                            editLastDate,
+                            editInterval,
+                            editIntervalUnit
+                          );
+                          return days < 0 ? (
+                            <span style={{ color: "var(--color-danger)" }}>
+                              {Math.abs(days)} days overdue
+                            </span>
+                          ) : (
+                            <span>{getTimeLeftDisplay(days, viewMode)}</span>
+                          );
+                        })()}
+                      </div>
+                      <div className="actions-row">
                         <button
                           className="modal-btn"
                           onClick={() => handleEditSave(item.id)}
                         >
                           Save
                         </button>
-                        <button className="modal-btn" onClick={handleEditCancel}>
+                        <button
+                          className="modal-btn"
+                          onClick={handleEditCancel}
+                        >
                           Cancel
                         </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="meta-row">
-                  <div></div>
-                  <div className={`meta-info${isEditing ? " edit-meta-info" : ""}`}>
-                    {isEditing ? (
-                      <>
-                        <div>
-                          <span className="calendar-label">Next:</span>
-                          <input
-                            type="date"
-                            value={editNextDate}
-                            onChange={e => {
-                              setEditNextDate(e.target.value);
-                              setEditInterval(
-                                calculateDaysBetween(
-                                  editLastDate,
-                                  e.target.value,
-                                  editIntervalUnit || "Days"
-                                )
-                              );
-                            }}
-                            className="calendar-date"
-                            style={{
-                              background: "var(--color-card)",
-                              color: "var(--color-text)"
-                            }}
-                          />
-                        </div>
-                        <div style={{ marginTop: "0.5rem" }}>
-                          <span className="calendar-label">Last:</span>
-                          <input
-                            type="date"
-                            value={editLastDate}
-                            onChange={e => {
-                              setEditLastDate(e.target.value);
-                              setEditInterval(
-                                calculateDaysBetween(
-                                  e.target.value,
-                                  editNextDate,
-                                  editIntervalUnit || "Days"
-                                )
-                              );
-                            }}
-                            className="calendar-date"
-                            style={{
-                              background: "var(--color-card)",
-                              color: "var(--color-text)"
-                            }}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        Next: {nextDate}<br />
-                        Last: {new Date(item.lastReplaced + "T00:00:00").toLocaleDateString()}
-                      </>
-                    )}
-                  </div>
+                <div className="card-divider" />
+              </React.Fragment>
+            );
+          })}
+
+          {deleteId !== null && (
+            <div className="modal-overlay">
+              <div className="modal-dialog" ref={modalRef}>
+                <div className="modal-title">Delete Item</div>
+                <div style={{ marginBottom: "1.5rem" }}>
+                  Are you sure you want to delete this item?
                 </div>
-              </div>
-              <div className="card-divider" />
-            </React.Fragment>
-          );
-        })}
-        {deleteId !== null && (
-          <div className="modal-overlay">
-            <div className="modal-dialog" ref={modalRef}>
-              <div className="modal-title">Delete Item</div>
-              <div style={{ marginBottom: "1.5rem" }}>
-                Are you sure you want to delete this item?
-              </div>
-              <div className="modal-btn-row">
-                <button
-                  className="modal-btn"
-                  onClick={() => handleDelete(deleteId)}
-                >
-                  Delete
-                </button>
-                <button className="modal-btn" onClick={() => setDeleteId(null)}>
-                  Cancel
-                </button>
+                <div className="modal-btn-row">
+                  <button
+                    className="modal-btn"
+                    onClick={() => handleDelete(deleteId)}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="modal-btn"
+                    onClick={() => setDeleteId(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <SpeedInsights />
-    </div>
+    </>
   );
 };
 
