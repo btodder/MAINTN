@@ -135,7 +135,7 @@ const App: React.FC = () => {
   const verbRef = useRef<HTMLSpanElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
 
-  // Click outside the add form to cancel
+  // Click outside the add form to cancel the form
   useEffect(() => {
     if (!showAddForm) return;
     function handleClick(event: MouseEvent) {
