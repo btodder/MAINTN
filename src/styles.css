@@ -1,6 +1,6 @@
 :root {
-  --font-main: "Segoe UI", "Roboto", Arial, sans-serif;
-  --color-background: #f2f3f5;
+  --font-main: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  --color-background: #e2e4e8; /* Softer light grey */
   --color-card: #fff;
   --color-border: #1a1a1a;
   --color-text: #23272f;
@@ -64,6 +64,7 @@ button,
   min-height: 100vh;
   text-align: center;
   padding: 2rem 0;
+  background: var(--color-background);
 }
 
 .centered-title {
@@ -71,6 +72,15 @@ button,
   font-size: 2rem;
   font-weight: 700;
   margin: 1.5rem 0 2rem 0;
+  cursor: pointer;
+  transition: text-decoration 0.2s;
+}
+.centered-title:hover {
+  text-decoration: underline;
+}
+.centered-title.editing-title {
+  text-decoration: none;
+  cursor: text;
 }
 
 .main-container {
@@ -78,14 +88,40 @@ button,
   margin: 0 auto;
 }
 
-/* Add row with new button, form, and dark mode toggle */
+/* Add row with new button, form, and gear/settings button */
 .add-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.5rem;
   max-width: 700px;
   margin: 0 auto 1.2rem auto;
   width: 100%;
+  height: 3.2rem;
+}
+
+/* "New" button */
+.new-btn {
+  flex: 1;
+  width: 100%;
+  max-width: 700px;
+  height: 3.2rem;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  border: 1px solid var(--color-btn-border);
+  border-radius: 7px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.new-btn:hover,
+.new-btn:focus {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-border);
 }
 
 /* Only the form fields and add button get a border */
@@ -94,34 +130,47 @@ button,
   border: 1px solid var(--color-border);
   border-radius: 7px;
   background: var(--color-card);
-  padding: 0.4rem 0.6rem;
+  padding: 0;
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  height: 3.2rem;
 }
 
 .input-form {
   width: 100%;
+  height: 100%;
 }
 
 .input-row {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
   width: 100%;
+  height: 100%;
 }
 
 .input-row input,
 .input-row select,
 .input-row button {
-  height: 2.2rem;
   border-radius: 6px;
-  padding: 0 0.7rem;
   font-size: 1rem;
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--color-text);
   box-sizing: border-box;
+  height: 100%;
+}
+
+.input-row .item-input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.input-row > input:not(.item-input),
+.input-row > select,
+.input-row > button {
+  flex: none;
 }
 
 .input-row select {
@@ -140,53 +189,10 @@ button,
   background: var(--color-btn-bg-hover);
 }
 
-/* New button styling */
-.new-btn {
-  flex: 1;
-  width: 100%;
-  max-width: 700px;
-  background: var(--color-btn-bg);
-  color: var(--color-btn-text);
-  border: 1px solid var(--color-btn-border);
-  border-radius: 6px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding: 0.9rem 0;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.new-btn:hover,
-.new-btn:focus {
-  background: var(--color-btn-bg-hover);
-  color: var(--color-btn-border);
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  border-radius: 6px;
-  width: 2.2rem;
-  height: 2.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text);
-  transition: background 0.2s;
-  font-size: 1.2rem;
-  padding: 0;
-}
-
-.icon-btn:hover,
-.icon-btn:focus {
-  background: var(--color-btn-bg-hover);
-  color: var(--color-btn-border);
-}
-
+/* Add button */
 .replace-btn {
-  height: 2.2rem;
-  min-width: 2.2rem;
-  padding: 0 1.1rem;
+  min-width: 80px;
+  height: 100%;
   border-radius: 6px;
   background: var(--color-btn-bg);
   color: var(--color-btn-text);
@@ -199,11 +205,28 @@ button,
   transition: background 0.2s, color 0.2s;
 }
 
-.replace-btn:hover,
-.replace-btn:focus {
+/* Gear/settings button */
+.gear-btn {
+  height: 3.2rem;
+  width: 3.2rem;
+  min-width: 3.2rem;
+  min-height: 3.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 1.2rem;
+  padding: 0;
+}
+.gear-btn:hover,
+.gear-btn:focus {
   background: var(--color-btn-bg-hover);
   color: var(--color-btn-border);
-  outline: none;
 }
 
 /* Card styles */
@@ -220,7 +243,7 @@ button,
   overflow: visible;
 }
 .card-editing {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
   background: var(--color-card);
 }
 
@@ -299,11 +322,8 @@ button,
 /* Modal overlay and dialog */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.35);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,17 +336,20 @@ button,
   padding: 2rem 1.5rem;
   min-width: 320px;
   max-width: 90vw;
-  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 24px rgba(0,0,0,0.25);
   text-align: center;
   font-family: var(--font-main);
+}
+.settings-dialog {
+  min-width: 340px;
+  max-width: 98vw;
 }
 .modal-title {
   font-size: 1.2rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
-.modal-btn-row,
-.edit-btn-row {
+.modal-btn-row, .edit-btn-row {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
@@ -378,41 +401,34 @@ button,
 }
 
 /* Verb/category/interval selection overlays */
-.verb-select,
-.interval-edit,
-.category-edit {
+.verb-select, .interval-edit, .category-edit {
   cursor: pointer;
   text-decoration: none;
   transition: text-decoration 0.2s;
   color: inherit;
 }
-.verb-select:hover,
-.interval-edit:hover,
-.category-edit:hover {
+.verb-select:hover, .interval-edit:hover, .category-edit:hover {
   text-decoration: underline;
 }
 
-.verb-menu,
-.category-menu {
+.verb-menu, .category-menu {
   position: absolute;
   background: var(--color-verb-menu-bg, #fff);
   border: 1px solid var(--color-verb-menu-border, #bbb);
   border-radius: 7px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
   z-index: 10000;
   min-width: 130px;
   margin-top: 0.2rem;
 }
-.verb-menu-item,
-.category-menu-item {
+.verb-menu-item, .category-menu-item {
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-size: 1rem;
   color: var(--color-text);
   transition: background 0.15s;
 }
-.verb-menu-item:hover,
-.category-menu-item:hover {
+.verb-menu-item:hover, .category-menu-item:hover {
   background: var(--color-btn-bg-hover, #bdbdbd);
 }
 
@@ -421,7 +437,7 @@ button,
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: 7px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
   z-index: 10000;
   padding: 0.7rem 1rem;
   top: 1.8rem;
@@ -452,31 +468,34 @@ body.dark-mode .card-divider {
     padding: 1rem;
   }
   .add-row {
-    flex-wrap: nowrap;
+    flex-direction: column;
     gap: 0.5rem;
     width: 100%;
     max-width: 98vw;
     padding: 0 0.5rem;
+    height: auto;
   }
-  .add-form-container {
-    padding: 0.5rem;
-    width: 100%;
+  .add-form-container,
+  .new-btn,
+  .gear-btn {
+    height: 3.2rem;
+    min-height: 3.2rem;
+    max-height: 3.2rem;
   }
   .input-form {
     width: 100%;
+    height: 100%;
   }
   .input-row {
     flex-direction: column;
     align-items: stretch;
     gap: 0.6rem;
     width: 100%;
+    height: auto;
   }
   .input-row > * {
     width: 100%;
     box-sizing: border-box;
-  }
-  .add-row > .icon-btn.darkmode-btn-inline {
-    align-self: flex-start;
-    margin-top: 0.25rem;
+    height: 2.2rem;
   }
 }
