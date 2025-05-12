@@ -1,0 +1,482 @@
+:root {
+  --font-main: "Segoe UI", "Roboto", Arial, sans-serif;
+  --color-background: #f2f3f5;
+  --color-card: #fff;
+  --color-border: #1a1a1a;
+  --color-text: #23272f;
+  --color-text-muted: #666;
+  --color-category-bg: #eee;
+  --color-btn-bg: #ededed;
+  --color-btn-bg-hover: #bdbdbd;
+  --color-btn-text: #23272f;
+  --color-btn-border: #111;
+  --color-danger: #d32f2f;
+  --color-modal-bg: #fff;
+  --color-modal-text: #23272f;
+  --color-hr: #bbb;
+  --color-verb-menu-bg: #fff;
+  --color-verb-menu-border: #bbb;
+}
+
+body.dark-mode {
+  --color-background: #181818;
+  --color-card: #23272f;
+  --color-border: #fff;
+  --color-text: #fff;
+  --color-text-muted: #bbb;
+  --color-category-bg: #333;
+  --color-btn-bg: #222;
+  --color-btn-bg-hover: #333;
+  --color-btn-text: #fff;
+  --color-btn-border: #fff;
+  --color-danger: #ff7b7b;
+  --color-modal-bg: #23272f;
+  --color-modal-text: #fff;
+  --color-hr: #444;
+  --color-verb-menu-bg: #23272f;
+  --color-verb-menu-border: #444;
+  background: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+body,
+html,
+input,
+select,
+button,
+.card,
+.modal-dialog,
+.modal-btn,
+.calendar-label,
+.calendar-date,
+.text-muted,
+.category,
+.task-name,
+.meta-grey,
+.verb-select,
+.interval-edit {
+  font-family: var(--font-main);
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.App {
+  min-height: 100vh;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.centered-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1.5rem 0 2rem 0;
+}
+
+.main-container {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Add row with new button, form, and dark mode toggle */
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 700px;
+  margin: 0 auto 1.2rem auto;
+  width: 100%;
+}
+
+/* Only the form fields and add button get a border */
+.add-form-container {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card);
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  align-items: center;
+}
+
+.input-form {
+  width: 100%;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.input-row input,
+.input-row select,
+.input-row button {
+  height: 2.2rem;
+  border-radius: 6px;
+  padding: 0 0.7rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.input-row select {
+  appearance: none;
+}
+
+.input-row button {
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  border: 1px solid var(--color-btn-border);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.input-row button:hover {
+  background: var(--color-btn-bg-hover);
+}
+
+/* New button styling */
+.new-btn {
+  flex: 1;
+  width: 100%;
+  max-width: 700px;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  border: 1px solid var(--color-btn-border);
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.9rem 0;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.new-btn:hover,
+.new-btn:focus {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-border);
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  transition: background 0.2s;
+  font-size: 1.2rem;
+  padding: 0;
+}
+
+.icon-btn:hover,
+.icon-btn:focus {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-border);
+}
+
+.replace-btn {
+  height: 2.2rem;
+  min-width: 2.2rem;
+  padding: 0 1.1rem;
+  border-radius: 6px;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  font-weight: 600;
+  border: none;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.replace-btn:hover,
+.replace-btn:focus {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-border);
+  outline: none;
+}
+
+/* Card styles */
+.card {
+  background: var(--color-card);
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 1.1rem 1.2rem 0.8rem 1.2rem;
+  margin: 0 auto 0 0;
+  max-width: 700px;
+  color: var(--color-text);
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+.card-editing {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background: var(--color-card);
+}
+
+.category {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--color-category-bg);
+  color: var(--color-text);
+  font-size: 0.95em;
+  font-weight: 500;
+  vertical-align: middle;
+}
+.category-edit {
+  margin-left: 8px;
+}
+
+.task-name {
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin-bottom: 0.2rem;
+  text-align: left;
+}
+
+.days-left {
+  font-weight: 700;
+  font-size: 1.07rem;
+  margin-bottom: 0.1rem;
+  text-align: left;
+}
+
+.meta-grey {
+  color: var(--color-text-muted);
+  text-align: left;
+  font-size: 1rem;
+  margin-top: 0.2rem;
+  margin-bottom: 0.2rem;
+  position: relative;
+}
+
+.card .meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+}
+
+.card .meta-info {
+  text-align: right;
+  color: var(--color-text-muted);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.edit-meta-info > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.edit-meta-info > div + div {
+  margin-top: 0.5rem;
+}
+
+.actions-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.2rem;
+  align-items: center;
+  margin-top: 0.2rem;
+  margin-bottom: 0.1rem;
+  justify-content: flex-end;
+}
+
+/* Modal overlay and dialog */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-dialog {
+  background: var(--color-modal-bg);
+  color: var(--color-modal-text);
+  border-radius: 10px;
+  padding: 2rem 1.5rem;
+  min-width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  font-family: var(--font-main);
+}
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.modal-btn-row,
+.edit-btn-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.2rem;
+  margin-bottom: 0.2rem;
+}
+.modal-btn {
+  flex: 1 1 0;
+  height: 2.2rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  font-weight: 600;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+  margin: 0;
+}
+.modal-btn:hover,
+.modal-btn:focus {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-border);
+  outline: none;
+}
+
+/* Calendar row alignment */
+.calendar-row {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.calendar-label {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+}
+.calendar-date {
+  font-size: 1rem;
+  font-family: var(--font-main);
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+  margin-left: 0.5rem;
+}
+
+/* Verb/category/interval selection overlays */
+.verb-select,
+.interval-edit,
+.category-edit {
+  cursor: pointer;
+  text-decoration: none;
+  transition: text-decoration 0.2s;
+  color: inherit;
+}
+.verb-select:hover,
+.interval-edit:hover,
+.category-edit:hover {
+  text-decoration: underline;
+}
+
+.verb-menu,
+.category-menu {
+  position: absolute;
+  background: var(--color-verb-menu-bg, #fff);
+  border: 1px solid var(--color-verb-menu-border, #bbb);
+  border-radius: 7px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10000;
+  min-width: 130px;
+  margin-top: 0.2rem;
+}
+.verb-menu-item,
+.category-menu-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text);
+  transition: background 0.15s;
+}
+.verb-menu-item:hover,
+.category-menu-item:hover {
+  background: var(--color-btn-bg-hover, #bdbdbd);
+}
+
+.interval-dialog {
+  position: absolute;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10000;
+  padding: 0.7rem 1rem;
+  top: 1.8rem;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Card divider line */
+.card-divider {
+  height: 2px;
+  width: 100%;
+  background: #111;
+  margin: 0 auto 1.2rem auto;
+  max-width: 700px;
+}
+body.dark-mode .card-divider {
+  background: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 700px) {
+  .main-container,
+  .card,
+  .input-row {
+    max-width: 98vw;
+    padding: 1rem;
+  }
+  .add-row {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 98vw;
+    padding: 0 0.5rem;
+  }
+  .add-form-container {
+    padding: 0.5rem;
+    width: 100%;
+  }
+  .input-form {
+    width: 100%;
+  }
+  .input-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    width: 100%;
+  }
+  .input-row > * {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .add-row > .icon-btn.darkmode-btn-inline {
+    align-self: flex-start;
+    margin-top: 0.25rem;
+  }
+}
