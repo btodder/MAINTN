@@ -81,15 +81,25 @@ function calculateDaysBetween(date1: string, date2: string, unit: string) {
   }
 }
 
-function calculateDaysLeft(lastReplaced: string, interval: number, unit: string) {
+function calculateDaysLeft(
+  lastReplaced: string,
+  interval: number,
+  unit: string
+) {
   const last = new Date(lastReplaced + "T00:00:00");
   const now = new Date();
   let next = addInterval(lastReplaced, interval, unit);
-  const diff = Math.ceil((next.getTime() - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+  const diff = Math.ceil(
+    (next.getTime() - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24)
+  );
   return diff;
 }
 
-function calculateNextDate(lastReplaced: string, interval: number, unit: string) {
+function calculateNextDate(
+  lastReplaced: string,
+  interval: number,
+  unit: string
+) {
   const next = addInterval(lastReplaced, interval, unit);
   return next.toLocaleDateString();
 }
@@ -153,8 +163,8 @@ const App: React.FC = () => {
         intervalUnit: intervalUnit || "Days",
         lastReplaced: new Date().toISOString().slice(0, 10),
         category,
-        verb: "Replace"
-      }
+        verb: "Replace",
+      },
     ]);
     setName("");
     setInterval(30);
@@ -163,8 +173,8 @@ const App: React.FC = () => {
   };
 
   const handleReplace = (id: number) => {
-    setItems(items =>
-      items.map(item =>
+    setItems((items) =>
+      (items ?? []).map((item) =>
         item.id === id
           ? { ...item, lastReplaced: new Date().toISOString().slice(0, 10) }
           : item
@@ -181,7 +191,11 @@ const App: React.FC = () => {
     setEditingId(item.id);
     setEditName(item.name);
     setEditLastDate(item.lastReplaced.slice(0, 10));
-    const next = addInterval(item.lastReplaced.slice(0, 10), item.replacementInterval, item.intervalUnit || "Days");
+    const next = addInterval(
+      item.lastReplaced.slice(0, 10),
+      item.replacementInterval,
+      item.intervalUnit || "Days"
+    );
     setEditNextDate(next.toISOString().slice(0, 10));
     setEditVerb(item.verb);
     setEditCategory(item.category);
@@ -190,17 +204,19 @@ const App: React.FC = () => {
   };
 
   const handleEditSave = (id: number) => {
-    setItems(items =>
-      items.map(item =>
+    setItems((items) =>
+      (items ?? []).map((item) =>
         item.id === id
           ? {
               ...item,
               name: editName.trim(),
-              lastReplaced: new Date(editLastDate + "T00:00:00").toISOString().slice(0, 10),
+              lastReplaced: new Date(editLastDate + "T00:00:00")
+                .toISOString()
+                .slice(0, 10),
               replacementInterval: editInterval,
               intervalUnit: editIntervalUnit || "Days",
               verb: editVerb,
-              category: editCategory
+              category: editCategory,
             }
           : item
       )
@@ -237,20 +253,41 @@ const App: React.FC = () => {
   // Click outside for menus/dialogs (for edit mode menus)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (deleteId !== null && modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (
+        deleteId !== null &&
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
         setDeleteId(null);
       }
-      if (intervalDialogOpen && intervalDialogRef.current && !intervalDialogRef.current.contains(event.target as Node)) {
+      if (
+        intervalDialogOpen &&
+        intervalDialogRef.current &&
+        !intervalDialogRef.current.contains(event.target as Node)
+      ) {
         setIntervalDialogOpen(false);
       }
-      if (verbMenuOpen && verbRef.current && !verbRef.current.contains(event.target as Node)) {
+      if (
+        verbMenuOpen &&
+        verbRef.current &&
+        !verbRef.current.contains(event.target as Node)
+      ) {
         setVerbMenuOpen(false);
       }
-      if (categoryMenuOpen && categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+      if (
+        categoryMenuOpen &&
+        categoryRef.current &&
+        !categoryRef.current.contains(event.target as Node)
+      ) {
         setCategoryMenuOpen(false);
       }
     }
-    if (deleteId !== null || intervalDialogOpen || verbMenuOpen || categoryMenuOpen) {
+    if (
+      deleteId !== null ||
+      intervalDialogOpen ||
+      verbMenuOpen ||
+      categoryMenuOpen
+    ) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
@@ -259,8 +296,16 @@ const App: React.FC = () => {
   }, [deleteId, intervalDialogOpen, verbMenuOpen, categoryMenuOpen]);
 
   const sortedItems = [...(items ?? [])].sort((a, b) => {
-    const aLeft = calculateDaysLeft(a.lastReplaced, a.replacementInterval, a.intervalUnit || "Days");
-    const bLeft = calculateDaysLeft(b.lastReplaced, b.replacementInterval, b.intervalUnit || "Days");
+    const aLeft = calculateDaysLeft(
+      a.lastReplaced,
+      a.replacementInterval,
+      a.intervalUnit || "Days"
+    );
+    const bLeft = calculateDaysLeft(
+      b.lastReplaced,
+      b.replacementInterval,
+      b.intervalUnit || "Days"
+    );
     return aLeft - bLeft;
   });
 
@@ -288,11 +333,25 @@ const App: React.FC = () => {
                 style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
               >
                 {dark ? (
-                  <svg width="24" height="24" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke={iconColor}
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
                     <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
                   </svg>
                 ) : (
-                  <svg width="24" height="24" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke={iconColor}
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
                     <circle cx="12" cy="12" r="5" />
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
                   </svg>
@@ -304,7 +363,7 @@ const App: React.FC = () => {
               <div className="add-form-container" ref={formContainerRef}>
                 <form
                   className="input-form"
-                  onSubmit={e => {
+                  onSubmit={(e) => {
                     handleAdd(e);
                     setShowAddForm(false);
                   }}
@@ -319,7 +378,7 @@ const App: React.FC = () => {
                       required
                       style={{
                         color: "var(--color-text)",
-                        background: "var(--color-card)"
+                        background: "var(--color-card)",
                       }}
                     />
                     <input
@@ -332,15 +391,21 @@ const App: React.FC = () => {
                       style={{
                         width: 70,
                         color: "var(--color-text)",
-                        background: "var(--color-card)"
+                        background: "var(--color-card)",
                       }}
                     />
-                    <select value={intervalUnit} onChange={e => setIntervalUnit(e.target.value)}>
-                      {intervalUnits.map(u => (
+                    <select
+                      value={intervalUnit}
+                      onChange={(e) => setIntervalUnit(e.target.value)}
+                    >
+                      {intervalUnits.map((u) => (
                         <option key={u}>{u}</option>
                       ))}
                     </select>
-                    <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
                       {categories.map((cat) => (
                         <option key={cat}>{cat}</option>
                       ))}
@@ -359,11 +424,25 @@ const App: React.FC = () => {
                 style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
               >
                 {dark ? (
-                  <svg width="24" height="24" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke={iconColor}
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
                     <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
                   </svg>
                 ) : (
-                  <svg width="24" height="24" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke={iconColor}
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
                     <circle cx="12" cy="12" r="5" />
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
                   </svg>
@@ -394,14 +473,20 @@ const App: React.FC = () => {
           return (
             <React.Fragment key={item.id}>
               <div className={`card${isEditing ? " card-editing" : ""}`}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="task-name">
                       {isEditing ? (
                         <>
                           <input
                             value={editName}
-                            onChange={e => setEditName(e.target.value)}
+                            onChange={(e) => setEditName(e.target.value)}
                             autoFocus
                             placeholder="Rename item"
                             style={{
@@ -412,33 +497,45 @@ const App: React.FC = () => {
                               border: "1px solid var(--color-border)",
                               padding: "0.2rem 0.5rem",
                               background: "var(--color-card)",
-                              color: "var(--color-text)"
+                              color: "var(--color-text)",
                             }}
-                          />
-                          {" "}
+                          />{" "}
                           <span
                             className="category category-edit"
                             ref={categoryRef}
                             tabIndex={0}
                             style={{
-                              textDecoration: categoryMenuOpen ? "underline" : "none",
+                              textDecoration: categoryMenuOpen
+                                ? "underline"
+                                : "none",
                               cursor: "pointer",
-                              position: "relative"
+                              position: "relative",
                             }}
-                            onMouseEnter={e => isEditing && (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={e => isEditing && (e.currentTarget.style.textDecoration = "none")}
-                            onClick={e => {
-                              if (isEditing) setCategoryMenuOpen(!categoryMenuOpen);
+                            onMouseEnter={(e) =>
+                              isEditing &&
+                              (e.currentTarget.style.textDecoration =
+                                "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              isEditing &&
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                            onClick={(e) => {
+                              if (isEditing)
+                                setCategoryMenuOpen(!categoryMenuOpen);
                             }}
                           >
                             {editCategory}
                             {categoryMenuOpen && isEditing && (
-                              <div className="category-menu" style={{
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                top: "1.8rem"
-                              }}>
-                                {categories.map(cat => (
+                              <div
+                                className="category-menu"
+                                style={{
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                  top: "1.8rem",
+                                }}
+                              >
+                                {categories.map((cat) => (
                                   <div
                                     key={cat}
                                     className="category-menu-item"
@@ -465,7 +562,9 @@ const App: React.FC = () => {
                     </div>
                     <div className="days-left" style={{ marginTop: "0.15rem" }}>
                       {daysLeft < 0 ? (
-                        <span style={{ color: "var(--color-danger)" }}>{Math.abs(daysLeft)} days overdue</span>
+                        <span style={{ color: "var(--color-danger)" }}>
+                          {Math.abs(daysLeft)} days overdue
+                        </span>
                       ) : (
                         <span>{daysLeft} days left</span>
                       )}
@@ -478,24 +577,36 @@ const App: React.FC = () => {
                             ref={verbRef}
                             tabIndex={0}
                             style={{
-                              textDecoration: verbMenuOpen ? "underline" : "none",
+                              textDecoration: verbMenuOpen
+                                ? "underline"
+                                : "none",
                               cursor: "pointer",
-                              position: "relative"
+                              position: "relative",
                             }}
-                            onMouseEnter={e => isEditing && (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={e => isEditing && (e.currentTarget.style.textDecoration = "none")}
-                            onClick={e => {
+                            onMouseEnter={(e) =>
+                              isEditing &&
+                              (e.currentTarget.style.textDecoration =
+                                "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              isEditing &&
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                            onClick={(e) => {
                               if (isEditing) setVerbMenuOpen(!verbMenuOpen);
                             }}
                           >
                             {editVerb}
                             {verbMenuOpen && isEditing && (
-                              <div className="verb-menu" style={{
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                top: "1.8rem"
-                              }}>
-                                {verbs.map(v => (
+                              <div
+                                className="verb-menu"
+                                style={{
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                  top: "1.8rem",
+                                }}
+                              >
+                                {verbs.map((v) => (
                                   <div
                                     key={v}
                                     className="verb-menu-item"
@@ -515,32 +626,51 @@ const App: React.FC = () => {
                             className="interval-edit"
                             tabIndex={0}
                             style={{
-                              textDecoration: intervalDialogOpen ? "underline" : "none",
-                              cursor: "pointer"
+                              textDecoration: intervalDialogOpen
+                                ? "underline"
+                                : "none",
+                              cursor: "pointer",
                             }}
-                            onMouseEnter={e => isEditing && (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={e => isEditing && (e.currentTarget.style.textDecoration = "none")}
-                            onClick={e => {
+                            onMouseEnter={(e) =>
+                              isEditing &&
+                              (e.currentTarget.style.textDecoration =
+                                "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              isEditing &&
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                            onClick={(e) => {
                               if (isEditing) setIntervalDialogOpen(true);
                             }}
                           >
                             {editInterval} {editIntervalUnit.toLowerCase()}
                             {intervalDialogOpen && (
-                              <div className="interval-dialog" ref={intervalDialogRef}>
+                              <div
+                                className="interval-dialog"
+                                ref={intervalDialogRef}
+                              >
                                 <input
                                   type="number"
                                   min={1}
                                   value={editInterval}
-                                  onChange={e => setEditInterval(Number(e.target.value))}
+                                  onChange={(e) =>
+                                    setEditInterval(Number(e.target.value))
+                                  }
                                   style={{
                                     width: 60,
                                     marginRight: 8,
                                     background: "var(--color-card)",
-                                    color: "var(--color-text)"
+                                    color: "var(--color-text)",
                                   }}
                                 />
-                                <select value={editIntervalUnit} onChange={e => setEditIntervalUnit(e.target.value)}>
-                                  {intervalUnits.map(u => (
+                                <select
+                                  value={editIntervalUnit}
+                                  onChange={(e) =>
+                                    setEditIntervalUnit(e.target.value)
+                                  }
+                                >
+                                  {intervalUnits.map((u) => (
                                     <option key={u}>{u}</option>
                                   ))}
                                 </select>
@@ -550,12 +680,18 @@ const App: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <span>{item.verb} every <b>{item.replacementInterval}</b> {(item.intervalUnit || "Days").toLowerCase()}.</span>
+                          <span>
+                            {item.verb} every <b>{item.replacementInterval}</b>{" "}
+                            {(item.intervalUnit || "Days").toLowerCase()}.
+                          </span>
                         </>
                       )}
                     </div>
                   </div>
-                  <div className="actions-row" style={{ alignItems: "flex-start", marginLeft: "0.5rem" }}>
+                  <div
+                    className="actions-row"
+                    style={{ alignItems: "flex-start", marginLeft: "0.5rem" }}
+                  >
                     {!isEditing ? (
                       <>
                         <button
@@ -565,7 +701,14 @@ const App: React.FC = () => {
                           onClick={() => handleEdit(item)}
                         >
                           {/* Calendar icon */}
-                          <svg width="20" height="20" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                          <svg
+                            width="20"
+                            height="20"
+                            fill="none"
+                            stroke={iconColor}
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
                             <rect x="3" y="4" width="18" height="18" rx="2" />
                             <line x1="16" y1="2" x2="16" y2="6" />
                             <line x1="8" y1="2" x2="8" y2="6" />
@@ -579,7 +722,14 @@ const App: React.FC = () => {
                           onClick={() => handleReplace(item.id)}
                         >
                           {/* Refresh icon */}
-                          <svg width="20" height="20" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                          <svg
+                            width="20"
+                            height="20"
+                            fill="none"
+                            stroke={iconColor}
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
                             <path d="M4 4v5h5" />
                             <path d="M19 20v-5h-5" />
                             <path d="M5 9a9 9 0 0 1 14 6" />
@@ -593,7 +743,14 @@ const App: React.FC = () => {
                           onClick={() => setDeleteId(item.id)}
                         >
                           {/* Trash icon */}
-                          <svg width="20" height="20" fill="none" stroke={iconColor} strokeWidth="2" viewBox="0 0 24 24">
+                          <svg
+                            width="20"
+                            height="20"
+                            fill="none"
+                            stroke={iconColor}
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
                             <polyline points="3 6 5 6 21 6" />
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
                             <path d="M10 11v6" />
@@ -610,7 +767,10 @@ const App: React.FC = () => {
                         >
                           Save
                         </button>
-                        <button className="modal-btn" onClick={handleEditCancel}>
+                        <button
+                          className="modal-btn"
+                          onClick={handleEditCancel}
+                        >
                           Cancel
                         </button>
                       </>
@@ -619,7 +779,9 @@ const App: React.FC = () => {
                 </div>
                 <div className="meta-row">
                   <div></div>
-                  <div className={`meta-info${isEditing ? " edit-meta-info" : ""}`}>
+                  <div
+                    className={`meta-info${isEditing ? " edit-meta-info" : ""}`}
+                  >
                     {isEditing ? (
                       <>
                         <div>
@@ -627,7 +789,7 @@ const App: React.FC = () => {
                           <input
                             type="date"
                             value={editNextDate}
-                            onChange={e => {
+                            onChange={(e) => {
                               setEditNextDate(e.target.value);
                               setEditInterval(
                                 calculateDaysBetween(
@@ -640,7 +802,7 @@ const App: React.FC = () => {
                             className="calendar-date"
                             style={{
                               background: "var(--color-card)",
-                              color: "var(--color-text)"
+                              color: "var(--color-text)",
                             }}
                           />
                         </div>
@@ -649,7 +811,7 @@ const App: React.FC = () => {
                           <input
                             type="date"
                             value={editLastDate}
-                            onChange={e => {
+                            onChange={(e) => {
                               setEditLastDate(e.target.value);
                               setEditInterval(
                                 calculateDaysBetween(
@@ -662,15 +824,19 @@ const App: React.FC = () => {
                             className="calendar-date"
                             style={{
                               background: "var(--color-card)",
-                              color: "var(--color-text)"
+                              color: "var(--color-text)",
                             }}
                           />
                         </div>
                       </>
                     ) : (
                       <>
-                        Next: {nextDate}<br />
-                        Last: {new Date(item.lastReplaced + "T00:00:00").toLocaleDateString()}
+                        Next: {nextDate}
+                        <br />
+                        Last:{" "}
+                        {new Date(
+                          item.lastReplaced + "T00:00:00"
+                        ).toLocaleDateString()}
                       </>
                     )}
                   </div>
