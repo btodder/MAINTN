@@ -6,7 +6,7 @@ const categories = ["Hygiene", "Expiration", "Performance", "Plants", "None"];
 const verbs = ["Appointment", "Meeting", "Replace", "Check", "Water"];
 const intervalUnits = ["Days", "Weeks", "Months", "Years"];
 
-type ViewMode = "days" | "weeks" | "months";
+type DisplayUnit = "days" | "weeks" | "months" | "years" | "decades";
 
 type Item = {
   id: number;
@@ -16,6 +16,9 @@ type Item = {
   lastReplaced: string;
   category: string;
   verb: string;
+  // A per-item preference for a finer unit than the countdown warrants.
+  // Absent means "just follow the natural unit".
+  displayUnit?: DisplayUnit;
 };
 
 function useDarkMode() {
@@ -61,34 +64,11 @@ function addInterval(dateStr: string, interval: number, unit: string) {
   return date;
 }
 
-function calculateDaysBetween(date1: string, date2: string, unit: string) {
-  const d1 = new Date(date1 + "T00:00:00");
-  const d2 = new Date(date2 + "T00:00:00");
-  let diff = d2.getTime() - d1.getTime();
-  switch (unit) {
-    case "Days":
-      return Math.round(diff / (1000 * 60 * 60 * 24));
-    case "Weeks":
-      return Math.round(diff / (1000 * 60 * 60 * 24 * 7));
-    case "Months":
-      return (
-        d2.getMonth() -
-        d1.getMonth() +
-        12 * (d2.getFullYear() - d1.getFullYear())
-      );
-    case "Years":
-      return d2.getFullYear() - d1.getFullYear();
-    default:
-      return Math.round(diff / (1000 * 60 * 60 * 24));
-  }
-}
-
 function calculateDaysLeft(
   lastReplaced: string,
   interval: number,
   unit: string
 ) {
-  const last = new Date(lastReplaced + "T00:00:00");
   const now = new Date();
   let next = addInterval(lastReplaced, interval, unit);
   const diff = Math.ceil(
@@ -102,28 +82,165 @@ function calculateNextDate(
   interval: number,
   unit: string
 ) {
-  const next = addInterval(lastReplaced, interval, unit);
-  return next.toLocaleDateString();
+  return formatDate(addInterval(lastReplaced, interval, unit));
 }
 
-function getTimeLeftDisplay(daysLeft: number, view: ViewMode) {
-  if (view === "days") {
-    return `${daysLeft} days left`;
-  } else if (view === "weeks") {
-    const weeks = Math.floor(daysLeft / 7);
-    const days = daysLeft % 7;
-    return `${weeks} weeks${days ? `, ${days} days` : ""} left`;
-  } else if (view === "months") {
-    const months = Math.floor(daysLeft / 30);
-    const weeks = Math.floor((daysLeft % 30) / 7);
-    const days = daysLeft % 7;
-    let str = "";
-    if (months) str += `${months} mo`;
-    if (weeks) str += (str ? ", " : "") + `${weeks} wk`;
-    if (days) str += (str ? ", " : "") + `${days} d`;
-    return str ? `${str} left` : "0 days left";
-  }
+function formatDate(date: Date) {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  // Without the year, a yearly cycle reads as "Last Sep 14 / Next Sep 14".
+  if (date.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return date.toLocaleDateString(undefined, opts);
 }
+
+function unitLabel(interval: number, unit: string) {
+  const lower = unit.toLowerCase();
+  return interval === 1 ? lower.replace(/s$/, "") : lower;
+}
+
+// Length of one full cycle, used to size the depletion track and decide
+// whether an item counts as "due soon" relative to its own interval.
+// Local calendar date, not toISOString — that converts to UTC and lands on the
+// previous day for anyone east of Greenwich.
+function toInputDate(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}`;
+}
+
+function isValidDate(value: string) {
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(new Date(value + "T00:00:00").getTime())
+  );
+}
+
+function getCycleDays(lastReplaced: string, interval: number, unit: string) {
+  const last = new Date(lastReplaced + "T00:00:00");
+  const next = addInterval(lastReplaced, interval, unit);
+  return Math.max(1, Math.round((next.getTime() - last.getTime()) / 86400000));
+}
+
+type Status = "ok" | "soon" | "over";
+
+function getStatus(
+  daysLeft: number,
+  cycleDays: number,
+  soonPercent: number,
+  soonDays: number
+): Status {
+  if (daysLeft < 0) return "over";
+  // Proportional so a weekly plant and a yearly service both warn sensibly,
+  // with a plain-days floor for whichever comes first.
+  if (daysLeft <= soonDays || daysLeft / cycleDays <= soonPercent / 100)
+    return "soon";
+  return "ok";
+}
+
+// Largest unit first, so both selection loops below can scan downwards.
+const UNITS = [
+  { key: "decades", days: 3650, one: "decade", many: "decades" },
+  { key: "years", days: 365, one: "year", many: "years" },
+  { key: "months", days: 30, one: "month", many: "months" },
+  { key: "weeks", days: 7, one: "week", many: "weeks" },
+  { key: "days", days: 1, one: "day", many: "days" },
+] as const;
+
+const DAYS_UNIT = UNITS[UNITS.length - 1];
+
+// The coarsest unit worth using for a span. Requires at least 2 of a unit,
+// otherwise a 6-day item would read "1 week" and lose more than it gains.
+function naturalIndex(absDays: number) {
+  const i = UNITS.findIndex((u) => Math.round(absDays / u.days) >= 2);
+  return i === -1 ? UNITS.length - 1 : i;
+}
+
+// Units offered for an item: its natural unit and every finer one. A 4-day
+// cycle therefore offers only days — weeks and months say nothing useful.
+function selectableUnits(cycleDays: number) {
+  return UNITS.slice(naturalIndex(cycleDays));
+}
+
+// One rounded figure plus its unit, so the countdown always fits one column.
+function formatCountdown(daysLeft: number, chosen?: DisplayUnit) {
+  const abs = Math.abs(daysLeft);
+  const natural = naturalIndex(abs);
+  const preferred = chosen ? UNITS.findIndex((u) => u.key === chosen) : -1;
+
+  // UNITS runs coarse to fine, so the larger index is the finer unit. Taking
+  // the finer of the two means a preference for smaller units is honoured
+  // while it holds up, and quietly gives way as the date closes in.
+  const unit = UNITS[Math.max(natural, preferred)] ?? DAYS_UNIT;
+
+  const value = Math.round(abs / unit.days);
+  return {
+    value,
+    unit: value === 1 ? unit.one : unit.many,
+    suffix: daysLeft < 0 ? "over" : "left",
+    sign: daysLeft < 0 ? "−" : "",
+  };
+}
+
+const IconCalendar = () => (
+  <svg
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    viewBox="0 0 24 24"
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const IconPencil = () => (
+  <svg
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    viewBox="0 0 24 24"
+  >
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    viewBox="0 0 24 24"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const IconGear = () => (
+  <svg
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    viewBox="0 0 24 24"
+  >
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
 
 const App: React.FC = () => {
   const [items, setItems] = useLocalStorage<Item[]>("replacement-items", []);
@@ -139,11 +256,9 @@ const App: React.FC = () => {
   const [editCategory, setEditCategory] = useState<string>("None");
   const [editInterval, setEditInterval] = useState<number>(30);
   const [editIntervalUnit, setEditIntervalUnit] = useState<string>("Days");
-  const [intervalDialogOpen, setIntervalDialogOpen] = useState(false);
+  const [editDisplayUnit, setEditDisplayUnit] = useState<DisplayUnit>("days");
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [verbMenuOpen, setVerbMenuOpen] = useState(false);
-  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
   // Add form is hidden by default
   const [showAddForm, setShowAddForm] = useState(false);
@@ -155,10 +270,12 @@ const App: React.FC = () => {
   const [dark, setDark] = useDarkMode();
 
   // View mode: days, weeks, months
-  const [viewMode, setViewMode] = useLocalStorage<ViewMode>(
-    "view-mode",
-    "days"
+  // When an item turns amber, adjustable from Settings.
+  const [soonPercent, setSoonPercent] = useLocalStorage<number>(
+    "soon-percent",
+    20
   );
+  const [soonDays, setSoonDays] = useLocalStorage<number>("soon-days", 2);
 
   // Editable title
   const [editingTitle, setEditingTitle] = useState(false);
@@ -168,9 +285,6 @@ const App: React.FC = () => {
   );
 
   const modalRef = useRef<HTMLDivElement>(null);
-  const intervalDialogRef = useRef<HTMLDivElement>(null);
-  const categoryRef = useRef<HTMLSpanElement>(null);
-  const verbRef = useRef<HTMLSpanElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
@@ -208,16 +322,21 @@ const App: React.FC = () => {
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const lastReplaced = new Date().toISOString().slice(0, 10);
+    const unit = intervalUnit || "Days";
     setItems([
       ...(items ?? []),
       {
         id: Date.now(),
         name: name.trim(),
         replacementInterval: interval,
-        intervalUnit: intervalUnit || "Days",
-        lastReplaced: new Date().toISOString().slice(0, 10),
+        intervalUnit: unit,
+        lastReplaced,
         category,
         verb: "Replace",
+        displayUnit: selectableUnits(
+          getCycleDays(lastReplaced, interval, unit)
+        )[0].key,
       },
     ]);
     setName("");
@@ -228,7 +347,7 @@ const App: React.FC = () => {
 
   const handleReplace = (id: number) => {
     setItems((items) =>
-      items.map((item) =>
+      (items ?? []).map((item) =>
         item.id === id
           ? { ...item, lastReplaced: new Date().toISOString().slice(0, 10) }
           : item
@@ -250,27 +369,92 @@ const App: React.FC = () => {
       item.replacementInterval,
       item.intervalUnit || "Days"
     );
-    setEditNextDate(next.toISOString().slice(0, 10));
+    setEditNextDate(toInputDate(next));
     setEditVerb(item.verb);
     setEditCategory(item.category);
     setEditInterval(item.replacementInterval);
     setEditIntervalUnit(item.intervalUnit || "Days");
+    setEditDisplayUnit(
+      item.displayUnit ??
+        selectableUnits(
+          getCycleDays(
+            item.lastReplaced.slice(0, 10),
+            item.replacementInterval,
+            item.intervalUnit || "Days"
+          )
+        )[0].key
+    );
+  };
+
+  // Last, Next and the interval describe one schedule, so editing any of them
+  // keeps the others honest. Without this the Next field looked editable but
+  // was never read back, and silently reverted on save.
+  const changeLastDate = (value: string) => {
+    setEditLastDate(value);
+    if (isValidDate(value)) {
+      setEditNextDate(
+        toInputDate(addInterval(value, editInterval, editIntervalUnit || "Days"))
+      );
+    }
+  };
+
+  const changeNextDate = (value: string) => {
+    setEditNextDate(value);
+    if (isValidDate(value)) {
+      setEditLastDate(
+        toInputDate(
+          addInterval(value, -editInterval, editIntervalUnit || "Days")
+        )
+      );
+    }
+  };
+
+  const changeInterval = (value: number) => {
+    setEditInterval(value);
+    if (isValidDate(editLastDate)) {
+      setEditNextDate(
+        toInputDate(
+          addInterval(editLastDate, value, editIntervalUnit || "Days")
+        )
+      );
+    }
+  };
+
+  const changeIntervalUnit = (value: string) => {
+    setEditIntervalUnit(value);
+    if (isValidDate(editLastDate)) {
+      setEditNextDate(
+        toInputDate(addInterval(editLastDate, editInterval, value))
+      );
+    }
   };
 
   const handleEditSave = (id: number) => {
+    // A cleared date input would otherwise reach toISOString as an Invalid
+    // Date and throw, taking the whole render down.
+    if (!isValidDate(editLastDate)) return;
+
+    // The interval may have changed under the selection, so re-check that the
+    // chosen unit is still one this item can offer.
+    const options = selectableUnits(
+      getCycleDays(editLastDate, editInterval, editIntervalUnit || "Days")
+    );
+    const savedUnit = options.some((u) => u.key === editDisplayUnit)
+      ? editDisplayUnit
+      : options[0].key;
+
     setItems((items) =>
-      items.map((item) =>
+      (items ?? []).map((item) =>
         item.id === id
           ? {
               ...item,
               name: editName.trim(),
-              lastReplaced: new Date(editLastDate + "T00:00:00")
-                .toISOString()
-                .slice(0, 10),
+              lastReplaced: editLastDate,
               replacementInterval: editInterval,
               intervalUnit: editIntervalUnit || "Days",
               verb: editVerb,
               category: editCategory,
+              displayUnit: savedUnit,
             }
           : item
       )
@@ -283,9 +467,7 @@ const App: React.FC = () => {
     setEditCategory("None");
     setEditInterval(30);
     setEditIntervalUnit("Days");
-    setIntervalDialogOpen(false);
-    setVerbMenuOpen(false);
-    setCategoryMenuOpen(false);
+    setEditDisplayUnit("days");
     setShowAddForm(false); // Hide add form after editing, for mobile UX
   };
 
@@ -298,56 +480,23 @@ const App: React.FC = () => {
     setEditCategory("None");
     setEditInterval(30);
     setEditIntervalUnit("Days");
-    setIntervalDialogOpen(false);
-    setVerbMenuOpen(false);
-    setCategoryMenuOpen(false);
+    setEditDisplayUnit("days");
     setShowAddForm(false); // Hide add form after cancel, for mobile UX
   };
 
-  // Click outside for menus/dialogs (for edit mode menus)
+  // Click outside the delete confirmation to dismiss it
   useEffect(() => {
+    if (deleteId === null) return;
     function handleClickOutside(event: MouseEvent) {
-      if (
-        deleteId !== null &&
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setDeleteId(null);
       }
-      if (
-        intervalDialogOpen &&
-        intervalDialogRef.current &&
-        !intervalDialogRef.current.contains(event.target as Node)
-      ) {
-        setIntervalDialogOpen(false);
-      }
-      if (
-        verbMenuOpen &&
-        verbRef.current &&
-        !verbRef.current.contains(event.target as Node)
-      ) {
-        setVerbMenuOpen(false);
-      }
-      if (
-        categoryMenuOpen &&
-        categoryRef.current &&
-        !categoryRef.current.contains(event.target as Node)
-      ) {
-        setCategoryMenuOpen(false);
-      }
     }
-    if (
-      deleteId !== null ||
-      intervalDialogOpen ||
-      verbMenuOpen ||
-      categoryMenuOpen
-    ) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [deleteId, intervalDialogOpen, verbMenuOpen, categoryMenuOpen]);
+  }, [deleteId]);
 
   const sortedItems = [...(items ?? [])].sort((a, b) => {
     const aLeft = calculateDaysLeft(
@@ -363,549 +512,565 @@ const App: React.FC = () => {
     return aLeft - bLeft;
   });
 
-  const iconColor = dark ? "#fff" : "#000";
+  // Guard against a cleared or out-of-range input in Settings.
+  const soonPct = Math.min(100, Math.max(0, soonPercent ?? 20));
+  const soonFloor = Math.max(0, soonDays ?? 2);
+
+  const tally = { over: 0, soon: 0, ok: 0 };
+  sortedItems.forEach((item) => {
+    const unit = item.intervalUnit || "Days";
+    const daysLeft = calculateDaysLeft(
+      item.lastReplaced,
+      item.replacementInterval,
+      unit
+    );
+    const cycleDays = getCycleDays(
+      item.lastReplaced,
+      item.replacementInterval,
+      unit
+    );
+    tally[getStatus(daysLeft, cycleDays, soonPct, soonFloor)] += 1;
+  });
 
   return (
     <>
-      <div className="App">
-        {/* Settings Dialog */}
-        {settingsOpen && (
-          <div className="modal-overlay">
-            <div
-              className="modal-dialog settings-dialog"
-              ref={settingsRef}
-              style={{ minWidth: 340 }}
-            >
-              <div className="modal-title">Settings</div>
-              <div style={{ textAlign: "left", marginBottom: 18 }}>
-                <div style={{ marginBottom: 10 }}>
-                  <b>Theme:</b>
-                  <button
-                    className="modal-btn"
-                    style={{ marginLeft: 10 }}
-                    onClick={() => setDark((d) => !d)}
+      <div className="app">
+        <div className="shell">
+          <header className="bar">
+            {editingTitle ? (
+              <input
+                className="title-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={() => setEditingTitle(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === "Escape")
+                    setEditingTitle(false);
+                }}
+                autoFocus
+                maxLength={40}
+                aria-label="Tracker name"
+              />
+            ) : (
+              // Button inside the heading: keeps the tracker name as the
+              // heading's accessible name, and gives real keyboard activation.
+              <h1 className="title-heading">
+                <button
+                  type="button"
+                  className={`title${
+                    title?.trim() ? "" : " title--placeholder"
+                  }`}
+                  onClick={() => setEditingTitle(true)}
+                >
+                  {/* A blank title would collapse to zero width, leaving
+                      nothing to click and no way to set it again. */}
+                  {title?.trim() ? title : "Name this tracker"}
+                </button>
+              </h1>
+            )}
+            <div className="bar-actions">
+              {!showAddForm && (
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                >
+                  New
+                </button>
+              )}
+              <button
+                className="icon-btn"
+                type="button"
+                aria-label="Open settings"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <IconGear />
+              </button>
+            </div>
+          </header>
+
+          {showAddForm && (
+            <div className="addform" ref={formContainerRef}>
+              <form
+                onSubmit={(e) => {
+                  handleAdd(e);
+                  setShowAddForm(false);
+                }}
+              >
+                <div className="addform__row">
+                  <input
+                    className="field field--name"
+                    placeholder="What needs looking after?"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={40}
+                    required
+                    autoFocus
+                    aria-label="Item name"
+                  />
+                  <input
+                    type="number"
+                    className="field field--num"
+                    min={1}
+                    value={interval}
+                    onChange={(e) => setInterval(Number(e.target.value))}
+                    required
+                    aria-label="Interval"
+                  />
+                  <select
+                    className="field field--select"
+                    value={intervalUnit}
+                    onChange={(e) => setIntervalUnit(e.target.value)}
+                    aria-label="Interval unit"
                   >
-                    {dark ? "Switch to Day Mode" : "Switch to Night Mode"}
+                    {intervalUnits.map((u) => (
+                      <option key={u}>{u}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="field field--select"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    aria-label="Category"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <button className="btn" type="submit">
+                    Add
                   </button>
                 </div>
-                <div>
-                  <b>View Options:</b>
-                  <div style={{ marginTop: 8 }}>
-                    <label>
-                      <input
-                        type="radio"
-                        checked={viewMode === "days"}
-                        onChange={() => setViewMode("days")}
-                      />{" "}
-                      Days left
-                    </label>
-                    <br />
-                    <label>
-                      <input
-                        type="radio"
-                        checked={viewMode === "weeks"}
-                        onChange={() => setViewMode("weeks")}
-                      />{" "}
-                      Weeks (days & weeks left)
-                    </label>
-                    <br />
-                    <label>
-                      <input
-                        type="radio"
-                        checked={viewMode === "months"}
-                        onChange={() => setViewMode("months")}
-                      />{" "}
-                      Months (months, weeks & days left)
-                    </label>
+              </form>
+            </div>
+          )}
+
+          {sortedItems.length > 0 && (
+            <div className="summary">
+              <span className="summary__item" style={stateVar("over")}>
+                <span className="dot" />
+                <b>{tally.over}</b> overdue
+              </span>
+              <span className="summary__item" style={stateVar("soon")}>
+                <span className="dot" />
+                <b>{tally.soon}</b> due soon
+              </span>
+              <span className="summary__item" style={stateVar("ok")}>
+                <span className="dot" />
+                <b>{tally.ok}</b> scheduled
+              </span>
+            </div>
+          )}
+
+          {sortedItems.length === 0 ? (
+            <div className="empty">
+              Nothing tracked yet. Add the first thing you keep forgetting.
+            </div>
+          ) : (
+            <div className="list">
+              {sortedItems.map((item) => {
+                const unit = item.intervalUnit || "Days";
+                const daysLeft = calculateDaysLeft(
+                  item.lastReplaced,
+                  item.replacementInterval,
+                  unit
+                );
+                const cycleDays = getCycleDays(
+                  item.lastReplaced,
+                  item.replacementInterval,
+                  unit
+                );
+                const status = getStatus(
+                  daysLeft,
+                  cycleDays,
+                  soonPct,
+                  soonFloor
+                );
+                const pct = Math.min(
+                  100,
+                  Math.max(0, (1 - daysLeft / cycleDays) * 100)
+                );
+                const isEditing = editingId === item.id;
+                const countdown = formatCountdown(daysLeft, item.displayUnit);
+
+                // Recomputed from the live edit fields so the choices track
+                // whatever interval is being typed in right now.
+                const editOptions = isEditing
+                  ? selectableUnits(
+                      getCycleDays(
+                        editLastDate,
+                        editInterval,
+                        editIntervalUnit || "Days"
+                      )
+                    )
+                  : UNITS;
+                const editUnit = editOptions.some(
+                  (u) => u.key === editDisplayUnit
+                )
+                  ? editDisplayUnit
+                  : editOptions[0].key;
+
+                // The preview describes the values being typed, so its colour
+                // has to come from those too — not from the saved row.
+                const editDateOk = isEditing && isValidDate(editLastDate);
+                const editDaysLeft = editDateOk
+                  ? calculateDaysLeft(
+                      editLastDate,
+                      editInterval,
+                      editIntervalUnit || "Days"
+                    )
+                  : 0;
+                const editStatus = editDateOk
+                  ? getStatus(
+                      editDaysLeft,
+                      getCycleDays(
+                        editLastDate,
+                        editInterval,
+                        editIntervalUnit || "Days"
+                      ),
+                      soonPct,
+                      soonFloor
+                    )
+                  : status;
+
+                const figure = `${countdown.sign}${countdown.value}`;
+
+                return (
+                  <div className={`row row--${status}`} key={item.id}>
+                    <div className="gauge">
+                      <span
+                        className={`gauge__num${
+                          figure.length >= 4
+                            ? " gauge__num--sm"
+                            : figure.length === 3
+                            ? " gauge__num--md"
+                            : ""
+                        }`}
+                      >
+                        {figure}
+                      </span>
+                      <span className="gauge__unit">
+                        <strong>{countdown.unit}</strong>
+                        <span>{countdown.suffix}</span>
+                      </span>
+                    </div>
+
+                    <div className="row__body">
+                      {!isEditing ? (
+                        <>
+                          <div className="row__head">
+                            <span className="row__name">{item.name}</span>
+                            {item.category !== "None" && (
+                              <span className="row__cat">{item.category}</span>
+                            )}
+                          </div>
+                          <div className="row__desc">
+                            {item.verb} every {item.replacementInterval}{" "}
+                            {unitLabel(item.replacementInterval, unit)}
+                          </div>
+
+                          <div className="track">
+                            <div
+                              className="track__fill"
+                              style={
+                                {
+                                  "--pct": `${pct}%`,
+                                } as React.CSSProperties
+                              }
+                            />
+                          </div>
+
+                          <div className="row__foot">
+                            <div className="row__dates">
+                              <span>
+                                Last{" "}
+                                {formatDate(
+                                  new Date(item.lastReplaced + "T00:00:00")
+                                )}
+                              </span>
+                              <span>
+                                Next{" "}
+                                {calculateNextDate(
+                                  item.lastReplaced,
+                                  item.replacementInterval,
+                                  unit
+                                )}
+                              </span>
+                            </div>
+                            <div className="row__actions">
+                              <button
+                                className="icon-btn"
+                                title="Mark done today"
+                                aria-label={`Mark ${item.name} done today`}
+                                onClick={() => handleReplace(item.id)}
+                              >
+                                <IconCalendar />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                title="Edit"
+                                aria-label={`Edit ${item.name}`}
+                                onClick={() => handleEdit(item)}
+                              >
+                                <IconPencil />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                title="Delete"
+                                aria-label={`Delete ${item.name}`}
+                                onClick={() => setDeleteId(item.id)}
+                              >
+                                <IconTrash />
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="edit">
+                          <input
+                            className="field field--name"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            maxLength={40}
+                            autoFocus
+                            aria-label="Item name"
+                          />
+                          <div className="edit__inline">
+                            <select
+                              className="field field--select"
+                              value={editVerb}
+                              onChange={(e) => setEditVerb(e.target.value)}
+                              aria-label="Action"
+                            >
+                              {verbs.map((v) => (
+                                <option key={v}>{v}</option>
+                              ))}
+                            </select>
+                            <span>every</span>
+                            <input
+                              type="number"
+                              className="field field--num"
+                              value={editInterval}
+                              min={1}
+                              onChange={(e) =>
+                                changeInterval(Number(e.target.value))
+                              }
+                              aria-label="Interval"
+                            />
+                            <select
+                              className="field field--select"
+                              value={editIntervalUnit}
+                              onChange={(e) =>
+                                changeIntervalUnit(e.target.value)
+                              }
+                              aria-label="Interval unit"
+                            >
+                              {intervalUnits.map((u) => (
+                                <option key={u}>{u}</option>
+                              ))}
+                            </select>
+                            <select
+                              className="field field--select"
+                              value={editCategory}
+                              onChange={(e) => setEditCategory(e.target.value)}
+                              aria-label="Category"
+                            >
+                              {categories.map((cat) => (
+                                <option key={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="edit__meta">
+                            {editOptions.length > 1 && (
+                              <label className="edit__field">
+                                <span>Count down in</span>
+                                <select
+                                  className="field field--select field--unit"
+                                  value={editUnit}
+                                  onChange={(e) =>
+                                    setEditDisplayUnit(
+                                      e.target.value as DisplayUnit
+                                    )
+                                  }
+                                  aria-label="Countdown unit"
+                                >
+                                  {[...editOptions].reverse().map((u) => (
+                                    <option key={u.key} value={u.key}>
+                                      {u.many.charAt(0).toUpperCase() +
+                                        u.many.slice(1)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            )}
+                            <label className="edit__field">
+                              <span>Last</span>
+                              <input
+                                type="date"
+                                className="field field--date"
+                                value={editLastDate}
+                                onChange={(e) =>
+                                  changeLastDate(e.target.value)
+                                }
+                              />
+                            </label>
+                            <label className="edit__field">
+                              <span>Next</span>
+                              <input
+                                type="date"
+                                className="field field--date"
+                                value={editNextDate}
+                                onChange={(e) =>
+                                  changeNextDate(e.target.value)
+                                }
+                              />
+                            </label>
+                          </div>
+                          <div
+                            className={`edit__status${
+                              editDateOk ? "" : " edit__status--hint"
+                            }`}
+                            style={editDateOk ? stateVar(editStatus) : undefined}
+                          >
+                            {(() => {
+                              if (!editDateOk) return "Set a last date to save";
+                              const c = formatCountdown(editDaysLeft, editUnit);
+                              return `${c.value} ${c.unit} ${
+                                editDaysLeft < 0 ? "overdue" : "left"
+                              }`;
+                            })()}
+                          </div>
+                          <div className="edit__actions">
+                            <button
+                              className="btn"
+                              onClick={() => handleEditSave(item.id)}
+                              disabled={!editDateOk}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="btn btn--quiet"
+                              onClick={handleEditCancel}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="modal-btn-row">
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {deleteId !== null && (
+          <div className="modal-overlay">
+            <div className="modal" ref={modalRef}>
+              <h2 className="modal__title">Delete this item?</h2>
+              <p className="modal__text">
+                Its history and schedule will be removed. This can't be undone.
+              </p>
+              <div className="modal__actions">
                 <button
-                  className="modal-btn"
-                  onClick={() => setSettingsOpen(false)}
+                  className="btn btn--quiet"
+                  onClick={() => setDeleteId(null)}
                 >
-                  Close
+                  Keep it
+                </button>
+                <button className="btn" onClick={() => handleDelete(deleteId)}>
+                  Delete
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Editable Title */}
-        <h1
-          className={`centered-title${editingTitle ? " editing-title" : ""}`}
-          style={{
-            cursor: "pointer",
-            textDecoration: editingTitle ? "none" : undefined,
-          }}
-          onMouseEnter={(e) => {
-            if (!editingTitle)
-              e.currentTarget.style.textDecoration = "underline";
-          }}
-          onMouseLeave={(e) => {
-            if (!editingTitle) e.currentTarget.style.textDecoration = "none";
-          }}
-          onClick={() => setEditingTitle(true)}
-          tabIndex={0}
-        >
-          {editingTitle ? (
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={() => setEditingTitle(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === "Escape")
-                  setEditingTitle(false);
-              }}
-              style={{
-                fontSize: "2rem",
-                fontWeight: 700,
-                background: "none",
-                border: "none",
-                outline: "none",
-                textAlign: "center",
-                width: "100%",
-                color: "var(--color-text)",
-              }}
-              autoFocus
-              maxLength={40}
-            />
-          ) : (
-            title
-          )}
-        </h1>
+        {settingsOpen && (
+          <div className="modal-overlay">
+            <div className="modal" ref={settingsRef}>
+              <h2 className="modal__title">Settings</h2>
 
-        <div className="main-container">
-          <div className="add-row">
-            {!showAddForm ? (
-              <>
-                <button
-                  className="new-btn"
-                  type="button"
-                  onClick={() => setShowAddForm(true)}
-                >
-                  New
+              <div className="setting">
+                <div className="setting__label">Theme</div>
+                <button className="btn btn--quiet" onClick={() => setDark((d) => !d)}>
+                  {dark ? "Switch to day mode" : "Switch to night mode"}
                 </button>
-                <button
-                  className="icon-btn gear-btn"
-                  aria-label="Open settings"
-                  type="button"
-                  onClick={() => setSettingsOpen(true)}
-                  style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
-                >
-                  {/* Gear Icon */}
-                  <svg
-                    width="24"
-                    height="24"
-                    fill="none"
-                    stroke={iconColor}
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                  </svg>
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="add-form-container" ref={formContainerRef}>
-                  <form
-                    className="input-form"
-                    onSubmit={(e) => {
-                      handleAdd(e);
-                      setShowAddForm(false);
-                    }}
-                    style={{ flex: 1, margin: 0, width: "100%" }}
-                  >
-                    <div className="input-row">
-                      <input
-                        className="item-input"
-                        placeholder="Item"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        maxLength={40}
-                        required
-                        style={{
-                          color: "var(--color-text)",
-                          background: "var(--color-card)",
-                        }}
-                      />
-                      <div className="input-row-group">
-                        <input
-                          type="number"
-                          className="number-input"
-                          min={1}
-                          value={interval}
-                          onChange={(e) => setInterval(Number(e.target.value))}
-                          required
-                          placeholder="Interval"
-                          style={{
-                            color: "var(--color-text)",
-                            background: "var(--color-card)",
-                          }}
-                        />
-                        <select
-                          className="interval-unit-select"
-                          value={intervalUnit}
-                          onChange={(e) => setIntervalUnit(e.target.value)}
-                        >
-                          {intervalUnits.map((u) => (
-                            <option key={u}>{u}</option>
-                          ))}
-                        </select>
-                        <select
-                          className="category-select"
-                          value={category}
-                          onChange={(e) => setCategory(e.target.value)}
-                        >
-                          {categories.map((cat) => (
-                            <option key={cat}>{cat}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <button className="replace-btn" type="submit">
-                        Add
-                      </button>
-                    </div>
-                  </form>
-                </div>
-                <button
-                  className="icon-btn gear-btn"
-                  aria-label="Open settings"
-                  type="button"
-                  onClick={() => setSettingsOpen(true)}
-                  style={{ alignSelf: "flex-start", marginTop: "0.25rem" }}
-                >
-                  {/* Gear Icon */}
-                  <svg
-                    width="24"
-                    height="24"
-                    fill="none"
-                    stroke={iconColor}
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
+              </div>
 
-          {/* TASKS/CARDS */}
-          {sortedItems.length === 0 && (
-            <div style={{ textAlign: "center", marginTop: "2rem" }}>
-              No items yet. Add something to track!
-            </div>
-          )}
-          {sortedItems.map((item) => {
-            const daysLeft = calculateDaysLeft(
-              item.lastReplaced,
-              item.replacementInterval,
-              item.intervalUnit || "Days"
-            );
-            const nextDate = calculateNextDate(
-              item.lastReplaced,
-              item.replacementInterval,
-              item.intervalUnit || "Days"
-            );
-            const isEditing = editingId === item.id;
-            return (
-              <React.Fragment key={item.id}>
-                <div className={`card${isEditing ? " card-editing" : ""}`}>
-                  {!isEditing ? (
-                    <div
-                      className="card-content-row"
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: "1.5rem",
-                      }}
-                    >
-                      {/* Left: Name and Days Left */}
-                      <div style={{ flex: 1 }}>
-                        <div
-                          className="task-name"
-                          style={{
-                            fontWeight: 700,
-                            fontSize: "1.1rem",
-                            marginBottom: 4,
-                          }}
-                        >
-                          {item.name}
-                          {item.category !== "None" && (
-                            <span
-                              className="category"
-                              style={{ marginLeft: 8 }}
-                            >
-                              {item.category}
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: "1.5rem",
-                            marginBottom: 2,
-                          }}
-                        >
-                          {Math.abs(daysLeft)}{" "}
-                          <span style={{ fontWeight: 400, fontSize: "1rem" }}>
-                            {daysLeft < 0 ? "days overdue" : "days left"}
-                          </span>
-                        </div>
-                        <div style={{ color: "#666", marginBottom: 2 }}>
-                          {item.verb} every <b>{item.replacementInterval}</b>{" "}
-                          {item.intervalUnit.toLowerCase()}.
-                        </div>
-                      </div>
-                      {/* Right: Icons and Dates */}
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-end",
-                        }}
-                      >
-                        <div
-                          style={{ display: "flex", gap: 12, marginBottom: 8 }}
-                        >
-                          {/* Replace/Calendar Icon */}
-                          <button
-                            className="icon-btn"
-                            title="Replace now"
-                            aria-label="Replace now"
-                            onClick={() => handleReplace(item.id)}
-                          >
-                            {/* Calendar Icon */}
-                            <svg
-                              width="20"
-                              height="20"
-                              fill="none"
-                              stroke={iconColor}
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <rect x="3" y="4" width="18" height="18" rx="2" />
-                              <line x1="16" y1="2" x2="16" y2="6" />
-                              <line x1="8" y1="2" x2="8" y2="6" />
-                              <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                          </button>
-                          {/* Edit/Pencil Icon */}
-                          <button
-                            className="icon-btn"
-                            title="Edit"
-                            aria-label="Edit"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <svg
-                              width="20"
-                              height="20"
-                              fill="none"
-                              stroke={iconColor}
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                            </svg>
-                          </button>
-                          {/* Trash Icon */}
-                          <button
-                            className="icon-btn"
-                            title="Delete"
-                            aria-label="Delete"
-                            onClick={() => setDeleteId(item.id)}
-                          >
-                            <svg
-                              width="20"
-                              height="20"
-                              fill="none"
-                              stroke={iconColor}
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                              <path d="M10 11v6" />
-                              <path d="M14 11v6" />
-                              <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </div>
-                        <div
-                          style={{
-                            textAlign: "right",
-                            color: "#666",
-                            fontSize: "0.95rem",
-                          }}
-                        >
-                          Next: {nextDate}
-                          <br />
-                          Last:{" "}
-                          {new Date(
-                            item.lastReplaced + "T00:00:00"
-                          ).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // EDIT MODE (optional, see previous messages for a full edit form)
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      <input
-                        className="task-name"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        style={{
-                          width: "100%",
-                          fontWeight: 700,
-                          fontSize: "1.1rem",
-                          padding: "0.3em 0.5em",
-                        }}
-                        maxLength={40}
-                        autoFocus
-                      />
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "0.5rem",
-                          alignItems: "center",
-                        }}
-                      >
-                        <select
-                          value={editVerb}
-                          onChange={(e) => setEditVerb(e.target.value)}
-                          style={{ minWidth: 100 }}
-                        >
-                          {verbs.map((v) => (
-                            <option key={v}>{v}</option>
-                          ))}
-                        </select>
-                        <span>every</span>
-                        <input
-                          type="number"
-                          value={editInterval}
-                          min={1}
-                          onChange={(e) =>
-                            setEditInterval(Number(e.target.value))
-                          }
-                          style={{ width: 60 }}
-                        />
-                        <select
-                          value={editIntervalUnit}
-                          onChange={(e) => setEditIntervalUnit(e.target.value)}
-                          style={{ minWidth: 80 }}
-                        >
-                          {intervalUnits.map((u) => (
-                            <option key={u}>{u}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          style={{ minWidth: 100 }}
-                        >
-                          {categories.map((cat) => (
-                            <option key={cat}>{cat}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", gap: "1rem" }}>
-                        <label>
-                          Next:{" "}
-                          <input
-                            type="date"
-                            value={editNextDate}
-                            onChange={(e) => setEditNextDate(e.target.value)}
-                          />
-                        </label>
-                        <label>
-                          Last:{" "}
-                          <input
-                            type="date"
-                            value={editLastDate}
-                            onChange={(e) => setEditLastDate(e.target.value)}
-                          />
-                        </label>
-                      </div>
-                      <div style={{ margin: "0.5rem 0" }}>
-                        {(() => {
-                          const days = calculateDaysLeft(
-                            editLastDate,
-                            editInterval,
-                            editIntervalUnit
-                          );
-                          return days < 0 ? (
-                            <span style={{ color: "var(--color-danger)" }}>
-                              {Math.abs(days)} days overdue
-                            </span>
-                          ) : (
-                            <span>{getTimeLeftDisplay(days, viewMode)}</span>
-                          );
-                        })()}
-                      </div>
-                      <div className="actions-row">
-                        <button
-                          className="modal-btn"
-                          onClick={() => handleEditSave(item.id)}
-                        >
-                          Save
-                        </button>
-                        <button
-                          className="modal-btn"
-                          onClick={handleEditCancel}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
+              <div className="setting">
+                <div className="setting__label">When items turn amber</div>
+                <div className="legend">
+                  <span className="legend__item" style={stateVar("ok")}>
+                    <span className="dot" />
+                    On track
+                  </span>
+                  <span className="legend__item" style={stateVar("soon")}>
+                    <span className="dot" />
+                    Due soon
+                  </span>
+                  <span className="legend__item" style={stateVar("over")}>
+                    <span className="dot" />
+                    Past due
+                  </span>
                 </div>
-                <div className="card-divider" />
-              </React.Fragment>
-            );
-          })}
+                <div className="rule">
+                  <label className="rule__line">
+                    Warn when
+                    <input
+                      type="number"
+                      className="field field--num"
+                      min={0}
+                      max={100}
+                      value={soonPct}
+                      onChange={(e) =>
+                        setSoonPercent(
+                          Math.min(100, Math.max(0, Number(e.target.value) || 0))
+                        )
+                      }
+                      aria-label="Percent of cycle remaining"
+                    />
+                    % of the cycle is left
+                  </label>
+                  <label className="rule__line">
+                    or when
+                    <input
+                      type="number"
+                      className="field field--num"
+                      min={0}
+                      value={soonFloor}
+                      onChange={(e) =>
+                        setSoonDays(Math.max(0, Number(e.target.value) || 0))
+                      }
+                      aria-label="Days remaining"
+                    />
+                    days are left
+                  </label>
+                </div>
+                <p className="setting__note">
+                  Whichever comes first. On a 90-day cycle that means{" "}
+                  {Math.max(soonFloor, Math.round((90 * soonPct) / 100))} days'
+                  notice. Items turn red on their own once past due.
+                </p>
+              </div>
 
-          {deleteId !== null && (
-            <div className="modal-overlay">
-              <div className="modal-dialog" ref={modalRef}>
-                <div className="modal-title">Delete Item</div>
-                <div style={{ marginBottom: "1.5rem" }}>
-                  Are you sure you want to delete this item?
-                </div>
-                <div className="modal-btn-row">
-                  <button
-                    className="modal-btn"
-                    onClick={() => handleDelete(deleteId)}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    className="modal-btn"
-                    onClick={() => setDeleteId(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
+              <div className="modal__actions" style={{ marginTop: "1.25rem" }}>
+                <button className="btn" onClick={() => setSettingsOpen(false)}>
+                  Done
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       <SpeedInsights />
     </>
   );
 };
+
+function stateVar(status: Status): React.CSSProperties {
+  return { "--state": `var(--${status})` } as React.CSSProperties;
+}
 
 export default App;

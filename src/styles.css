@@ -1,304 +1,657 @@
 :root {
-  --font-main: "Segoe UI", "Roboto", Arial, sans-serif;
-  --color-background: #e2e4e8;
-  --color-card: #fff;
-  --color-border: #1a1a1a;
-  --color-text: #23272f;
-  --color-text-muted: #666;
-  --color-category-bg: #eee;
-  --color-btn-bg: #ededed;
-  --color-btn-bg-hover: #bdbdbd;
-  --color-btn-text: #23272f;
-  --color-btn-border: #111;
-  --color-danger: #d32f2f;
+  /* Tells the browser how to paint native controls it draws itself — the
+     date picker indicator and its popup, spinners, dropdowns. Without this
+     the calendar glyph stays black and disappears against a dark field. */
+  color-scheme: light;
+
+  --font-main: "Archivo", "Segoe UI", system-ui, sans-serif;
+
+  --panel: #e7eae5;
+  --surface: #f7f8f6;
+  --surface-sunken: #dfe3dd;
+  --ink: #14181a;
+  --muted: #6e7671;
+  --rule: #cdd3cb;
+
+  --ok: #2f6f5e;
+  --soon: #b4791b;
+  --over: #b3301f;
+
+  --track-bg: #cbd2c8;
 }
 
-/* DARK MODE OVERRIDES */
 body.dark-mode {
-  --color-background: #181818;
-  --color-card: #23272f;
-  --color-border: #fff;
-  --color-text: #fff;
-  --color-text-muted: #bbb;
-  --color-category-bg: #333;
-  --color-btn-bg: #222;
-  --color-btn-bg-hover: #333;
-  --color-btn-text: #fff;
-  --color-btn-border: #fff;
-  --color-danger: #ff7b7b;
+  color-scheme: dark;
+
+  --panel: #14181a;
+  --surface: #1b2124;
+  --surface-sunken: #101416;
+  --ink: #eef1ee;
+  --muted: #8d9793;
+  --rule: #2b3336;
+
+  --ok: #5cbfa3;
+  --soon: #e0a53c;
+  --over: #f0705c;
+
+  --track-bg: #2b3336;
 }
 
 html,
 body {
-  font-family: var(--font-main);
-  background: var(--color-background);
-  color: var(--color-text);
   margin: 0;
+  font-family: var(--font-main);
+  background: var(--panel);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 *,
 *::before,
 *::after {
+  box-sizing: border-box;
   font-family: inherit;
 }
 
-.App {
-  min-height: 100vh;
-  text-align: center;
-  padding: 2rem 0;
-  background: var(--color-background);
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
 }
 
-.main-container {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.centered-title {
-  text-align: center;
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 1.5rem 0 2rem 0;
-  cursor: pointer;
-  transition: text-decoration 0.2s;
-}
-.centered-title:hover {
-  text-decoration: underline;
-}
-.centered-title.editing-title {
-  text-decoration: none;
-  cursor: text;
-}
-
-/* Card Layout */
-.card-content-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
-}
-
-.card {
-  background: var(--color-card);
-  border-radius: 6px;
-  box-shadow: none;
-  padding: 1.1rem 1.2rem 0.8rem 1.2rem;
-  margin: 0 auto 0 0;
-  max-width: 700px;
-  color: var(--color-text);
-  position: relative;
-  z-index: 1;
-  overflow: visible;
-  margin-bottom: 1.2rem;
-}
-
-/* Icon Buttons */
-.icon-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  color: #222;
-  min-width: 2.2rem;
-  min-height: 2.2rem;
-  height: 2.2rem;
-  width: 2.2rem;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-}
-.icon-btn:hover,
-.icon-btn:focus {
-  background-color: var(--color-btn-bg-hover);
-  outline: none;
-}
-.icon-btn:focus-visible {
-  outline: 2px solid var(--color-btn-border);
+:focus-visible {
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
-/* Task Name */
-.card .task-name {
-  font-weight: 700;
-  font-size: 1.1rem;
+/* ---------- Shell ---------- */
+
+.app {
+  min-height: 100vh;
+  background: var(--panel);
+  padding: 2.5rem 1.25rem 4rem;
 }
 
-/* Category Badge */
-.category {
-  background: var(--color-category-bg);
-  color: var(--color-text);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.95em;
-  margin-left: 8px;
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
-/* Add Form & Item Input */
-.add-form-container {
+/* ---------- Masthead ---------- */
+
+.bar {
   display: flex;
-  align-items: stretch;
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: 7px;
-  background: var(--color-card);
-  padding: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.title-heading {
+  margin: 0;
   min-width: 0;
 }
 
-.input-form {
-  width: 100%;
-  height: 100%;
+.title {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  cursor: text;
+  /* Persistent, not hover-only: on touch there is no hover to reveal it,
+     and without a cue the title doesn't read as editable at all. */
+  text-decoration: underline dashed var(--rule);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
 }
 
-.input-row {
+.title:hover,
+.title:focus-visible {
+  text-decoration-color: var(--muted);
+}
+
+.title--placeholder {
+  color: var(--muted);
+}
+
+.title-input {
+  width: 100%;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--ink);
+  padding: 0;
+  outline: none;
+}
+
+.bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  border: 1px solid var(--ink);
+  background: none;
+  color: var(--ink);
+  border-radius: 3px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn:hover {
+  background: var(--ink);
+  color: var(--panel);
+}
+
+.btn--quiet {
+  border-color: var(--rule);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+  background: var(--surface-sunken);
+}
+
+/* ---------- Status summary ---------- */
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-bottom: 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.summary__item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.summary__item b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--state, var(--muted));
+}
+
+/* ---------- List ---------- */
+
+.list {
+  border-top: 1px solid var(--rule);
+}
+
+.row {
+  --state: var(--ok);
+  display: grid;
+  grid-template-columns: 4.75rem 1fr;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.row--soon {
+  --state: var(--soon);
+}
+
+.row--over {
+  --state: var(--over);
+}
+
+/* Numeral gutter */
+
+.gauge {
+  text-align: right;
+  padding: 0.05rem 1.15rem 0 0;
+  border-right: 1px solid var(--rule);
+}
+
+.gauge__num {
+  display: block;
+  font-size: 2.5rem;
+  line-height: 0.9;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  color: var(--state);
+}
+
+.gauge__num--md {
+  font-size: 2.1rem;
+}
+
+.gauge__num--sm {
+  font-size: 1.6rem;
+}
+
+.gauge__unit {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+/* The unit carries real meaning once it varies per row, so it gets the weight. */
+.gauge__unit strong {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.gauge__unit span {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+
+/* Row body */
+
+.row__body {
+  min-width: 0;
+  padding-left: 1.15rem;
+}
+
+.row__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.row__name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.row__cat {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.row__desc {
+  margin-top: 0.15rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* The signature element: depletion track */
+
+.track {
+  position: relative;
+  height: 6px;
+  margin: 0.55rem 0 0.5rem;
+  background: var(--track-bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.track__fill {
+  height: 100%;
+  width: var(--pct, 0%);
+  background: var(--state);
+  border-radius: 3px;
+  animation: fill 600ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes fill {
+  from {
+    width: 0%;
+  }
+}
+
+.row__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.row__dates {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.row__actions {
+  display: flex;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+/* ---------- Empty state ---------- */
+
+.empty {
+  padding: 3.5rem 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* ---------- Add form ---------- */
+
+.addform {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.addform form {
+  margin: 0;
+}
+
+.addform__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.field {
+  height: 2.25rem;
+  padding: 0 0.6rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  outline: none;
+}
+
+.field:focus {
+  border-color: var(--ink);
+}
+
+.field--name {
+  min-width: 0;
+}
+
+/* Scoped to the add form's row: inside the edit panel's column layout this
+   basis would be read as a height and stretch the field to 12rem tall. */
+.addform__row .field--name {
+  flex: 1 1 12rem;
+}
+
+.field--num {
+  width: 4.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.field--select {
+  flex: 0 1 8rem;
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%236e7671" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 0.4rem center;
+}
+
+.addform .btn {
+  height: 2.25rem;
+}
+
+/* ---------- Edit mode ---------- */
+
+.edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.edit__inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.edit__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+}
+
+.edit__field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* Sized to keep the countdown unit and both dates on one line. */
+.field--unit {
+  flex: 0 0 auto;
+  width: 6.75rem;
+}
+
+.field--date {
+  width: 9.5rem;
+}
+
+.edit__status {
+  font-size: 0.8125rem;
+  color: var(--state);
+  font-weight: 500;
+}
+
+.edit__status--hint {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: none;
+  color: var(--ink);
+}
+
+.edit__actions {
   display: flex;
   gap: 0.5rem;
-  align-items: stretch;
-  width: 100%;
 }
 
-.item-input {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 0 0.7em;
-  text-align: left;
-  font-size: 1rem;
-}
+/* ---------- Modals ---------- */
 
-/* Number & Select Inputs in Add Form */
-.number-input {
-  width: 4.5em;
-  min-width: 0;
-  text-align: center;
-}
-
-.interval-unit-select,
-.category-select {
-  width: 7em;
-  min-width: 0;
-  text-align: center;
-  text-align-last: center;
-  appearance: none;
-  background: var(--color-card);
-  background-image: url('data:image/svg+xml;utf8,<svg fill="gray" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 0.5em center;
-  background-size: 1em;
-}
-
-/* Replace/Add/Modal Buttons */
-.replace-btn,
-.modal-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 80px;
-  height: 100%;
-  border-radius: 6px;
-  background: var(--color-btn-bg);
-  color: var(--color-btn-text);
-  font-weight: 600;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  padding: 0;
-}
-.replace-btn:hover,
-.replace-btn:focus,
-.modal-btn:hover,
-.modal-btn:focus {
-  background: var(--color-btn-bg-hover);
-  color: var(--color-btn-border);
-  outline: none;
-}
-
-/* Modal overlay and dialog */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.35);
+  inset: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  padding: 1.25rem;
+  background: rgba(20, 24, 26, 0.4);
 }
-.modal-dialog {
-  background: var(--color-card);
-  color: var(--color-text);
-  border-radius: 10px;
-  padding: 2rem 1.5rem;
-  min-width: 320px;
-  max-width: 90vw;
-  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
-  text-align: center;
-  font-family: var(--font-main);
+
+.modal {
+  width: 100%;
+  max-width: 24rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
 }
-.settings-dialog {
-  min-width: 340px;
-  max-width: 98vw;
+
+.modal__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
 }
-.modal-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
+
+.modal__text {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
 }
-.modal-btn-row {
+
+.modal__actions {
   display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.setting {
+  padding: 0.875rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.setting__label {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.setting__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  justify-content: center;
-  margin-top: 1.5rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 
-/* Remove blue highlight on focus */
-input:focus,
-select:focus,
-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-btn-bg-hover);
-  background: var(--color-btn-bg-hover);
-  color: var(--color-btn-text);
-}
-::selection {
-  background: var(--color-btn-bg-hover);
-  color: var(--color-btn-text);
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.card-divider {
-  height: 1px;
-  background: #e2e4e8;
-  margin: 0.5rem 0 0.7rem 0;
-  border: none;
+.rule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* Responsive adjustments */
-@media (max-width: 700px) {
-  .main-container,
-  .card {
-    max-width: 98vw;
-    padding: 1rem;
+.rule__line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.rule__line .field {
+  height: 2rem;
+  width: 4rem;
+  color: var(--ink);
+}
+
+.setting__note {
+  margin: 0.7rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.setting__choices label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 560px) {
+  .app {
+    padding: 1.75rem 1rem 3rem;
   }
-  .card-content-row {
-    flex-direction: column;
+
+  .row {
+    grid-template-columns: 4.25rem 1fr;
+  }
+
+  .gauge {
+    padding-right: 0.8rem;
+  }
+
+  .row__body {
+    padding-left: 0.8rem;
+  }
+
+  .gauge__num {
+    font-size: 1.875rem;
+  }
+
+  .gauge__unit {
+    font-size: 0.6875rem;
+  }
+
+  .row__head {
     gap: 0.5rem;
   }
-  .add-form-container {
-    width: 100%;
-    max-width: 98vw;
-  }
-  .input-row {
+
+  .row__foot {
     flex-direction: column;
+    align-items: flex-start;
     gap: 0.5rem;
-    width: 100%;
-    height: auto;
   }
-  .item-input {
-    width: 100%;
-    margin-bottom: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }
