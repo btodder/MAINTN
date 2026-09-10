@@ -1,4 +1,24 @@
 {
-  "name": "Devcontainer",
-  "image": "ghcr.io/codesandbox/devcontainers/typescript-node:latest"
+  "name": "MAINTN",
+
+  // Node 20 LTS. If package.json has an "engines" field, match it here instead.
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+
+  // Was: setupTasks in .codesandbox/tasks.json
+  // Runs once when the Codespace is created, and on every prebuild.
+  "postCreateCommand": "yarn install --frozen-lockfile",
+
+  // Was: runTasks in .codesandbox/tasks.json
+  // postAttachCommand, not postStartCommand, so the dev server comes up every time
+  // you reconnect. This is the behavior closest to the CodeSandbox always-running VM.
+  "postAttachCommand": "yarn dev",
+
+  "forwardPorts": [5173],
+
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite dev server",
+      "onAutoForward": "openPreview"
+    }
+  }
 }
