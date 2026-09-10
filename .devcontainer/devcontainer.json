@@ -2,7 +2,7 @@
   "name": "MAINTN",
 
   // Node 20 LTS. If package.json has an "engines" field, match it here instead.
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
 
   // Was: setupTasks in .codesandbox/tasks.json
   // Runs once when the Codespace is created, and on every prebuild.
