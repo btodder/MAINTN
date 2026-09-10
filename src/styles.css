@@ -479,6 +479,21 @@ select {
   font-weight: 500;
 }
 
+.edit__status--hint {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: none;
+  color: var(--ink);
+}
+
 .edit__actions {
   display: flex;
   gap: 0.5rem;

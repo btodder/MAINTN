@@ -99,6 +99,22 @@ function unitLabel(interval: number, unit: string) {
 
 // Length of one full cycle, used to size the depletion track and decide
 // whether an item counts as "due soon" relative to its own interval.
+// Local calendar date, not toISOString — that converts to UTC and lands on the
+// previous day for anyone east of Greenwich.
+function toInputDate(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}`;
+}
+
+function isValidDate(value: string) {
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(new Date(value + "T00:00:00").getTime())
+  );
+}
+
 function getCycleDays(lastReplaced: string, interval: number, unit: string) {
   const last = new Date(lastReplaced + "T00:00:00");
   const next = addInterval(lastReplaced, interval, unit);
@@ -241,11 +257,8 @@ const App: React.FC = () => {
   const [editInterval, setEditInterval] = useState<number>(30);
   const [editIntervalUnit, setEditIntervalUnit] = useState<string>("Days");
   const [editDisplayUnit, setEditDisplayUnit] = useState<DisplayUnit>("days");
-  const [intervalDialogOpen, setIntervalDialogOpen] = useState(false);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [verbMenuOpen, setVerbMenuOpen] = useState(false);
-  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
   // Add form is hidden by default
   const [showAddForm, setShowAddForm] = useState(false);
@@ -272,9 +285,6 @@ const App: React.FC = () => {
   );
 
   const modalRef = useRef<HTMLDivElement>(null);
-  const intervalDialogRef = useRef<HTMLDivElement>(null);
-  const categoryRef = useRef<HTMLSpanElement>(null);
-  const verbRef = useRef<HTMLSpanElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
@@ -359,7 +369,7 @@ const App: React.FC = () => {
       item.replacementInterval,
       item.intervalUnit || "Days"
     );
-    setEditNextDate(next.toISOString().slice(0, 10));
+    setEditNextDate(toInputDate(next));
     setEditVerb(item.verb);
     setEditCategory(item.category);
     setEditInterval(item.replacementInterval);
@@ -376,7 +386,54 @@ const App: React.FC = () => {
     );
   };
 
+  // Last, Next and the interval describe one schedule, so editing any of them
+  // keeps the others honest. Without this the Next field looked editable but
+  // was never read back, and silently reverted on save.
+  const changeLastDate = (value: string) => {
+    setEditLastDate(value);
+    if (isValidDate(value)) {
+      setEditNextDate(
+        toInputDate(addInterval(value, editInterval, editIntervalUnit || "Days"))
+      );
+    }
+  };
+
+  const changeNextDate = (value: string) => {
+    setEditNextDate(value);
+    if (isValidDate(value)) {
+      setEditLastDate(
+        toInputDate(
+          addInterval(value, -editInterval, editIntervalUnit || "Days")
+        )
+      );
+    }
+  };
+
+  const changeInterval = (value: number) => {
+    setEditInterval(value);
+    if (isValidDate(editLastDate)) {
+      setEditNextDate(
+        toInputDate(
+          addInterval(editLastDate, value, editIntervalUnit || "Days")
+        )
+      );
+    }
+  };
+
+  const changeIntervalUnit = (value: string) => {
+    setEditIntervalUnit(value);
+    if (isValidDate(editLastDate)) {
+      setEditNextDate(
+        toInputDate(addInterval(editLastDate, editInterval, value))
+      );
+    }
+  };
+
   const handleEditSave = (id: number) => {
+    // A cleared date input would otherwise reach toISOString as an Invalid
+    // Date and throw, taking the whole render down.
+    if (!isValidDate(editLastDate)) return;
+
     // The interval may have changed under the selection, so re-check that the
     // chosen unit is still one this item can offer.
     const options = selectableUnits(
@@ -392,9 +449,7 @@ const App: React.FC = () => {
           ? {
               ...item,
               name: editName.trim(),
-              lastReplaced: new Date(editLastDate + "T00:00:00")
-                .toISOString()
-                .slice(0, 10),
+              lastReplaced: editLastDate,
               replacementInterval: editInterval,
               intervalUnit: editIntervalUnit || "Days",
               verb: editVerb,
@@ -413,9 +468,6 @@ const App: React.FC = () => {
     setEditInterval(30);
     setEditIntervalUnit("Days");
     setEditDisplayUnit("days");
-    setIntervalDialogOpen(false);
-    setVerbMenuOpen(false);
-    setCategoryMenuOpen(false);
     setShowAddForm(false); // Hide add form after editing, for mobile UX
   };
 
@@ -429,56 +481,22 @@ const App: React.FC = () => {
     setEditInterval(30);
     setEditIntervalUnit("Days");
     setEditDisplayUnit("days");
-    setIntervalDialogOpen(false);
-    setVerbMenuOpen(false);
-    setCategoryMenuOpen(false);
     setShowAddForm(false); // Hide add form after cancel, for mobile UX
   };
 
-  // Click outside for menus/dialogs (for edit mode menus)
+  // Click outside the delete confirmation to dismiss it
   useEffect(() => {
+    if (deleteId === null) return;
     function handleClickOutside(event: MouseEvent) {
-      if (
-        deleteId !== null &&
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         setDeleteId(null);
       }
-      if (
-        intervalDialogOpen &&
-        intervalDialogRef.current &&
-        !intervalDialogRef.current.contains(event.target as Node)
-      ) {
-        setIntervalDialogOpen(false);
-      }
-      if (
-        verbMenuOpen &&
-        verbRef.current &&
-        !verbRef.current.contains(event.target as Node)
-      ) {
-        setVerbMenuOpen(false);
-      }
-      if (
-        categoryMenuOpen &&
-        categoryRef.current &&
-        !categoryRef.current.contains(event.target as Node)
-      ) {
-        setCategoryMenuOpen(false);
-      }
     }
-    if (
-      deleteId !== null ||
-      intervalDialogOpen ||
-      verbMenuOpen ||
-      categoryMenuOpen
-    ) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [deleteId, intervalDialogOpen, verbMenuOpen, categoryMenuOpen]);
+  }, [deleteId]);
 
   const sortedItems = [...(items ?? [])].sort((a, b) => {
     const aLeft = calculateDaysLeft(
@@ -691,6 +709,30 @@ const App: React.FC = () => {
                 )
                   ? editDisplayUnit
                   : editOptions[0].key;
+
+                // The preview describes the values being typed, so its colour
+                // has to come from those too — not from the saved row.
+                const editDateOk = isEditing && isValidDate(editLastDate);
+                const editDaysLeft = editDateOk
+                  ? calculateDaysLeft(
+                      editLastDate,
+                      editInterval,
+                      editIntervalUnit || "Days"
+                    )
+                  : 0;
+                const editStatus = editDateOk
+                  ? getStatus(
+                      editDaysLeft,
+                      getCycleDays(
+                        editLastDate,
+                        editInterval,
+                        editIntervalUnit || "Days"
+                      ),
+                      soonPct,
+                      soonFloor
+                    )
+                  : status;
+
                 const figure = `${countdown.sign}${countdown.value}`;
 
                 return (
@@ -758,7 +800,7 @@ const App: React.FC = () => {
                             <div className="row__actions">
                               <button
                                 className="icon-btn"
-                                title={`Mark ${item.verb.toLowerCase()}d today`}
+                                title="Mark done today"
                                 aria-label={`Mark ${item.name} done today`}
                                 onClick={() => handleReplace(item.id)}
                               >
@@ -811,7 +853,7 @@ const App: React.FC = () => {
                               value={editInterval}
                               min={1}
                               onChange={(e) =>
-                                setEditInterval(Number(e.target.value))
+                                changeInterval(Number(e.target.value))
                               }
                               aria-label="Interval"
                             />
@@ -819,7 +861,7 @@ const App: React.FC = () => {
                               className="field field--select"
                               value={editIntervalUnit}
                               onChange={(e) =>
-                                setEditIntervalUnit(e.target.value)
+                                changeIntervalUnit(e.target.value)
                               }
                               aria-label="Interval unit"
                             >
@@ -868,7 +910,7 @@ const App: React.FC = () => {
                                 className="field field--date"
                                 value={editLastDate}
                                 onChange={(e) =>
-                                  setEditLastDate(e.target.value)
+                                  changeLastDate(e.target.value)
                                 }
                               />
                             </label>
@@ -879,21 +921,22 @@ const App: React.FC = () => {
                                 className="field field--date"
                                 value={editNextDate}
                                 onChange={(e) =>
-                                  setEditNextDate(e.target.value)
+                                  changeNextDate(e.target.value)
                                 }
                               />
                             </label>
                           </div>
-                          <div className="edit__status">
+                          <div
+                            className={`edit__status${
+                              editDateOk ? "" : " edit__status--hint"
+                            }`}
+                            style={editDateOk ? stateVar(editStatus) : undefined}
+                          >
                             {(() => {
-                              const days = calculateDaysLeft(
-                                editLastDate,
-                                editInterval,
-                                editIntervalUnit
-                              );
-                              const c = formatCountdown(days, editUnit);
+                              if (!editDateOk) return "Set a last date to save";
+                              const c = formatCountdown(editDaysLeft, editUnit);
                               return `${c.value} ${c.unit} ${
-                                days < 0 ? "overdue" : "left"
+                                editDaysLeft < 0 ? "overdue" : "left"
                               }`;
                             })()}
                           </div>
@@ -901,6 +944,7 @@ const App: React.FC = () => {
                             <button
                               className="btn"
                               onClick={() => handleEditSave(item.id)}
+                              disabled={!editDateOk}
                             >
                               Save
                             </button>
@@ -979,8 +1023,12 @@ const App: React.FC = () => {
                       className="field field--num"
                       min={0}
                       max={100}
-                      value={soonPercent ?? 20}
-                      onChange={(e) => setSoonPercent(Number(e.target.value))}
+                      value={soonPct}
+                      onChange={(e) =>
+                        setSoonPercent(
+                          Math.min(100, Math.max(0, Number(e.target.value) || 0))
+                        )
+                      }
                       aria-label="Percent of cycle remaining"
                     />
                     % of the cycle is left
@@ -991,8 +1039,10 @@ const App: React.FC = () => {
                       type="number"
                       className="field field--num"
                       min={0}
-                      value={soonDays ?? 2}
-                      onChange={(e) => setSoonDays(Number(e.target.value))}
+                      value={soonFloor}
+                      onChange={(e) =>
+                        setSoonDays(Math.max(0, Number(e.target.value) || 0))
+                      }
                       aria-label="Days remaining"
                     />
                     days are left
