@@ -7,8 +7,9 @@
       "esModuleInterop": true,
       "lib": [
         "dom",
-        "es2015"
+        "es2020"
       ],
+      "skipLibCheck": true,
       "jsx": "react-jsx",
       "outDir": "./build",         // <--- Add this line
       "noEmit": false              // <--- Ensure this is not set to true
