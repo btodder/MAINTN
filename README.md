@@ -5,7 +5,7 @@ A lightweight maintenance-reminder tracker. Add recurring tasks — replacing a 
 ## Features
 
 - Add items with a name, category, and recurring interval (days/weeks/months/years)
-- Countdown view in days, weeks, or months
+- Countdown view in days, weeks, months, years, or decades
 - Mark an item done to reset its countdown to today
 - Edit or delete existing items
 - Light/dark mode, with an editable page title
@@ -13,9 +13,9 @@ A lightweight maintenance-reminder tracker. Add recurring tasks — replacing a 
 
 ## Tech stack
 
-- React 18 + TypeScript
+- React 19 + TypeScript
 - Vite
-- Vercel Speed Insights
+- Vercel (hosting + Speed Insights)
 
 ## Getting started
 
