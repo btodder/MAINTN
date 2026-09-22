@@ -29,7 +29,7 @@ This repo includes a devcontainer, so no local setup is required:
 
 ### Local development
 
-Requires [Node.js](https://nodejs.org/) 20 and [Yarn](https://yarnpkg.com/).
+Requires [Node.js](https://nodejs.org/) 20.19+ or 22.12+ (Vite 8's minimum; the devcontainer uses 22) and [Yarn](https://yarnpkg.com/).
 
 ```sh
 yarn install
